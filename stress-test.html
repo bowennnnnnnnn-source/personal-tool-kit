@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>压测机</title>
+<style>
+:root {
+  --bg: #0c0c10;
+  --surface: #12121a;
+  --surface2: #181822;
+  --border: #1e1e2c;
+  --border2: #2a2a3c;
+  --text: #e0e0ee;
+  --muted: #5a5a78;
+  --dim: #252535;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --blue: #60a5fa;
+  --accent: #7c6fff;
+  --green: #4ade80;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:15px}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;
+}
+
+/* HEADER */
+header{
+  padding:12px 16px 10px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  position:sticky;top:0;background:var(--bg);z-index:20;
+}
+.logo{font-family:'Courier New',monospace;font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.round-badge{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.08em;
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  padding:3px 9px;border-radius:20px;
+}
+.btn-reset{
+  margin-left:auto;font-size:10px;font-family:'Courier New',monospace;
+  background:none;border:1px solid var(--border);color:var(--muted);
+  padding:5px 11px;border-radius:7px;cursor:pointer;
+  transition:border-color .15s,color .15s;
+}
+.btn-reset:hover{border-color:var(--red);color:var(--red)}
+
+/* INPUT SECTION */
+#input-section{
+  padding:20px 16px 16px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.input-label{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:block;
+}
+textarea#proposition{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;font-size:14px;color:var(--text);
+  font-family:inherit;resize:none;outline:none;line-height:1.6;
+  min-height:72px;max-height:140px;transition:border-color .15s;
+}
+textarea#proposition::placeholder{color:var(--muted)}
+textarea#proposition:focus{border-color:var(--accent)}
+.input-actions{display:flex;gap:8px;margin-top:10px;align-items:center}
+#btn-attack{
+  background:var(--red);color:#fff;border:none;border-radius:9px;
+  padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:opacity .15s,transform .1s;opacity:.4;
+}
+#btn-attack.ready{opacity:1}
+#btn-attack.ready:active{transform:scale(.96)}
+.intensity-toggle{
+  display:flex;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;overflow:hidden;margin-left:auto;
+}
+.int-btn{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.05em;
+  padding:6px 10px;cursor:pointer;color:var(--muted);border:none;background:none;
+  transition:background .15s,color .15s;white-space:nowrap;
+}
+.int-btn.active{background:var(--surface);color:var(--text)}
+
+/* LOADING */
+#loading{
+  display:none;padding:24px 16px;text-align:center;
+  font-size:12px;color:var(--muted);font-family:'Courier New',monospace;
+  letter-spacing:.06em;
+}
+#loading.visible{display:flex;align-items:center;justify-content:center;gap:10px}
+.spin{
+  width:12px;height:12px;border:1.5px solid var(--dim);border-top-color:var(--red);
+  border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ATTACKS SECTION */
+#attacks-section{display:none;padding:16px}
+#attacks-section.visible{display:block}
+
+.prop-display{
+  font-size:13px;color:var(--muted);font-style:italic;
+  padding:10px 14px;background:var(--surface);border-radius:8px;
+  border-left:2px solid var(--accent);margin-bottom:16px;line-height:1.6;
+}
+.prop-display strong{color:var(--text);font-style:normal}
+
+/* ATTACK CARD */
+.attack-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;margin-bottom:12px;overflow:hidden;
+}
+.attack-head{
+  padding:12px 14px 10px;display:flex;align-items:flex-start;gap:10px;
+}
+.attack-type-tag{
+  font-size:9px;font-family:'Courier New',monospace;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;
+  border-radius:4px;flex-shrink:0;margin-top:1px;
+}
+.tag-logic{background:rgba(248,113,113,.12);color:var(--red)}
+.tag-premise{background:rgba(251,191,36,.12);color:var(--yellow)}
+.tag-counter{background:rgba(96,165,250,.12);color:var(--blue)}
+.attack-text{font-size:13px;line-height:1.7;color:var(--text);flex:1}
+
+/* REBUTTAL */
+.rebuttal-area{
+  border-top:1px solid var(--border);padding:10px 14px;
+  background:var(--surface2);
+}
+.rebuttal-label{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;
+}
+textarea.rebuttal-input{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:9px 11px;font-size:13px;color:var(--text);
+  font-family:inherit;resize:none;outline:none;line-height:1.6;
+  min-height:60px;max-height:120px;transition:border-color .15s;
+}
+textarea.rebuttal-input::placeholder{color:var(--muted)}
+textarea.rebuttal-input:focus{border-color:var(--accent)}
+
+/* VERDICT */
+.verdict-wrap{
+  border-top:1px solid var(--border);padding:8px 12px;
+  display:flex;align-items:flex-start;gap:8px;background:var(--surface);
+}
+.verdict-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+.verdict-text{font-size:12px;line-height:1.6;color:var(--muted)}
+.verdict-text strong{color:var(--text)}
+
+/* SUBMIT REBUTTALS */
+#btn-submit{
+  width:100%;background:var(--accent);color:#fff;border:none;
+  border-radius:10px;padding:13px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;margin-top:4px;margin-bottom:16px;
+  transition:opacity .15s,transform .1s;opacity:.4;
+}
+#btn-submit.ready{opacity:1}
+#btn-submit.ready:active{transform:scale(.98)}
+
+/* SUMMARY */
+#summary-section{display:none;padding:0 16px 32px}
+#summary-section.visible{display:block}
+.summary-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:16px;
+}
+.summary-title{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:12px;
+}
+.summary-verdict{
+  font-size:14px;font-weight:700;margin-bottom:10px;
+}
+.summary-body{font-size:13px;line-height:1.75;color:var(--muted);margin-bottom:14px}
+.summary-body strong{color:var(--text)}
+.summary-score{
+  display:flex;gap:8px;align-items:center;
+  padding:10px 12px;background:var(--surface2);border-radius:8px;
+  margin-bottom:14px;
+}
+.score-label{font-size:10px;font-family:'Courier New',monospace;color:var(--muted)}
+.score-bar{flex:1;height:4px;background:var(--dim);border-radius:2px;overflow:hidden}
+.score-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.score-num{font-size:11px;font-family:'Courier New',monospace;color:var(--text);flex-shrink:0}
+
+.btn-next-round{
+  width:100%;background:var(--surface2);border:1px solid var(--border2);
+  color:var(--text);border-radius:10px;padding:12px;font-size:13px;
+  font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;
+  transition:border-color .15s;
+}
+.btn-next-round:hover{border-color:var(--accent)}
+
+/* HISTORY */
+#history{padding:0 16px 32px}
+.history-title{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--dim);margin-bottom:10px;
+}
+.history-item{
+  padding:10px 0;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:10px;
+}
+.history-item:last-child{border-bottom:none}
+.history-prop{font-size:12.5px;color:var(--muted);font-style:italic;line-height:1.5;flex:1}
+.history-score-badge{
+  font-size:10px;font-family:'Courier New',monospace;
+  padding:3px 8px;border-radius:4px;flex-shrink:0;font-weight:700;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">压测机</span>
+  <span class="round-badge" id="round-badge">第 0 轮</span>
+  <button class="btn-reset" onclick="resetAll()">清空记录</button>
+</header>
+
+<div id="input-section">
+  <label class="input-label">输入一个命题 — 越具体越好打</label>
+  <textarea id="proposition" placeholder="e.g. 守弱是一种智慧&#10;e.g. 理解不依赖经历&#10;e.g. 行动的根基不需要理由" rows="3" oninput="onPropositionInput()" onkeydown="handleKey(event)"></textarea>
+  <div class="input-actions">
+    <button id="btn-attack" onclick="startAttack()">发动攻击</button>
+    <div class="intensity-toggle">
+      <button class="int-btn active" data-int="normal" onclick="setIntensity('normal')">常规</button>
+      <button class="int-btn" data-int="brutal" onclick="setIntensity('brutal')">无情</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading">
+  <div class="spin"></div>
+  <span id="loading-text">分析命题中…</span>
+</div>
+
+<div id="attacks-section">
+  <div class="prop-display" id="prop-display"></div>
+  <div id="attack-cards"></div>
+  <button id="btn-submit" onclick="submitRebuttals()">提交反驳</button>
+</div>
+
+<div id="summary-section">
+  <div class="summary-card" id="summary-card"></div>
+</div>
+
+<div id="history">
+  <div class="history-title" id="history-title" style="display:none">历史记录</div>
+  <div id="history-list"></div>
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let intensity = 'normal';
+let currentProp = '';
+let currentAttacks = [];
+let roundCount = 0;
+let history = [];
+let phase = 'input'; // input | attacks | summary
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+function onPropositionInput(){
+  const v = document.getElementById('proposition').value.trim();
+  document.getElementById('btn-attack').classList.toggle('ready', v.length >= 3);
+}
+
+function handleKey(e){
+  if(e.key==='Enter'&&e.metaKey) startAttack();
+}
+
+function setIntensity(i){
+  intensity = i;
+  document.querySelectorAll('.int-btn').forEach(b => b.classList.toggle('active', b.dataset.int===i));
+}
+
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,120)+'px';
+  checkSubmitReady();
+}
+
+function checkSubmitReady(){
+  const inputs = document.querySelectorAll('.rebuttal-input');
+  const anyFilled = Array.from(inputs).some(i=>i.value.trim().length>0);
+  document.getElementById('btn-submit').classList.toggle('ready', anyFilled);
+}
+
+// ── ATTACK ────────────────────────────────────────────────────────────────────
+async function startAttack(){
+  const prop = document.getElementById('proposition').value.trim();
+  if(!prop) return;
+  currentProp = prop;
+
+  setPhase('loading');
+  document.getElementById('loading-text').textContent = '分析命题中…';
+
+  const intensityNote = intensity==='brutal'
+    ? '攻击要极其犀利、不留情面，直接指出最根本的问题，不做任何缓和。'
+    : '攻击要准确有力，但保持理性克制，不是为了羞辱而是为了逼出更清晰的思考。';
+
+  const system = `你是一个哲学压测机。用户输入一个命题，你从三个角度发动攻击，目的是找出真实的逻辑漏洞或底层预设问题——不是为了显得聪明，而是帮用户把命题打磨得更坚实。
+
+${intensityNote}
+
+规则：
+- 逻辑漏洞（logic）：命题内部的推理问题、自相矛盾、范围过度概括
+- 底层预设（premise）：命题成立所依赖但未被说明的假设，这些假设本身是否可疑
+- 反例（counter）：一个具体的反例或边界情况，能让命题失效或需要修正
+
+每个攻击必须针对这个具体命题，不能是泛泛而谈。攻击要短准狠，不超过3句话。
+
+严格返回JSON：
+{
+  "attacks": [
+    { "type": "logic", "text": "攻击内容" },
+    { "type": "premise", "text": "攻击内容" },
+    { "type": "counter", "text": "攻击内容" }
+  ]
+}`;
+
+  try {
+    const raw = await callClaude(system, [{ role:'user', content:`命题：${prop}` }]);
+    const clean = raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const parsed = JSON.parse(clean);
+    currentAttacks = parsed.attacks;
+    renderAttacks(prop, parsed.attacks);
+    setPhase('attacks');
+    roundCount++;
+    document.getElementById('round-badge').textContent = `第 ${roundCount} 轮`;
+  } catch(e) {
+    setPhase('input');
+    alert('攻击失败，请重试');
+  }
+}
+
+function renderAttacks(prop, attacks){
+  document.getElementById('prop-display').innerHTML = `命题：<strong>${escHtml(prop)}</strong>`;
+
+  const typeLabels = { logic:'逻辑漏洞', premise:'底层预设', counter:'反例' };
+  const typeClasses = { logic:'tag-logic', premise:'tag-premise', counter:'tag-counter' };
+  const typePlaceholders = {
+    logic:'这个逻辑问题我的回应是……',
+    premise:'这个预设我的立场是……',
+    counter:'这个反例的边界是……'
+  };
+
+  const html = attacks.map((a,i) => `
+    <div class="attack-card" id="ac-${i}">
+      <div class="attack-head">
+        <span class="attack-type-tag ${typeClasses[a.type]}">${typeLabels[a.type]||a.type}</span>
+        <div class="attack-text">${escHtml(a.text)}</div>
+      </div>
+      <div class="rebuttal-area">
+        <label class="rebuttal-label">你的反驳（可不写）</label>
+        <textarea class="rebuttal-input" id="rb-${i}" placeholder="${typePlaceholders[a.type]||'反驳…'}" rows="2" oninput="autoResize(this)"></textarea>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('attack-cards').innerHTML = html;
+  document.getElementById('btn-submit').classList.remove('ready');
+}
+
+// ── REBUTTAL ──────────────────────────────────────────────────────────────────
+async function submitRebuttals(){
+  const rebuttals = currentAttacks.map((a,i) => ({
+    type: a.type,
+    attack: a.text,
+    rebuttal: document.getElementById(`rb-${i}`)?.value.trim() || ''
+  }));
+
+  setPhase('loading');
+  document.getElementById('loading-text').textContent = '评估反驳中…';
+
+  const system = `你是哲学压测机的评估模块。你已经攻击了用户的命题，现在评估用户的反驳。
+
+评估标准：
+- 反驳是否真正回应了攻击的核心，还是回避了？
+- 反驳是否引入了新的论据或区分，还是只是重申原命题？
+- 如果用户没有反驳某个攻击，如实指出
+
+给出：
+1. 每个攻击-反驳对的简短评估（1-2句，直接说有没有挡住）
+2. 总体判决：命题是否在这轮压测后变得更坚实、需要修正、还是基本站不住
+3. 一个建议：如何修正命题才能更抗打
+4. 压测评分 0-100（纯粹看防守质量，不是命题本身的价值）
+
+严格返回JSON：
+{
+  "verdicts": [
+    { "held": true或false, "note": "评估" },
+    { "held": true或false, "note": "评估" },
+    { "held": true或false, "note": "评估" }
+  ],
+  "overall": "总体判决",
+  "suggestion": "修正建议",
+  "score": 数字
+}`;
+
+  const content = `命题：${currentProp}\n\n${rebuttals.map((r,i)=>`攻击${i+1}（${r.type}）：${r.attack}\n反驳：${r.rebuttal||'（未反驳）'}`).join('\n\n')}`;
+
+  try {
+    const raw = await callClaude(system, [{ role:'user', content }]);
+    const clean = raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const parsed = JSON.parse(clean);
+    renderVerdicts(parsed.verdicts);
+    renderSummary(parsed);
+    saveHistory(currentProp, parsed.score);
+    setPhase('summary');
+  } catch(e) {
+    setPhase('attacks');
+    alert('评估失败，请重试');
+  }
+}
+
+function renderVerdicts(verdicts){
+  verdicts.forEach((v,i) => {
+    const card = document.getElementById(`ac-${i}`);
+    if(!card) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'verdict-wrap';
+    wrap.innerHTML = `
+      <div class="verdict-icon">${v.held ? '🛡' : '💥'}</div>
+      <div class="verdict-text">${escHtml(v.note)}</div>
+    `;
+    card.appendChild(wrap);
+  });
+}
+
+function renderSummary(data){
+  const score = Math.max(0,Math.min(100,data.score||0));
+  const scoreColor = score>=70?'var(--green)':score>=40?'var(--yellow)':'var(--red)';
+  const verdictColor = score>=70?'var(--green)':score>=40?'var(--yellow)':'var(--red)';
+
+  document.getElementById('summary-card').innerHTML = `
+    <div class="summary-title">压测结果 · 第 ${roundCount} 轮</div>
+    <div class="summary-score">
+      <span class="score-label">防守评分</span>
+      <div class="score-bar"><div class="score-fill" style="width:${score}%;background:${scoreColor}"></div></div>
+      <span class="score-num">${score}</span>
+    </div>
+    <div class="summary-verdict" style="color:${verdictColor}">${escHtml(data.overall)}</div>
+    <div class="summary-body">${escHtml(data.suggestion)}</div>
+    <button class="btn-next-round" onclick="nextRound()">用修正后的命题再战</button>
+    <button class="btn-next-round" style="margin-top:6px;border-color:var(--border)" onclick="newProp()">换个命题</button>
+  `;
+
+  // animate score bar
+  setTimeout(()=>{
+    const fill = document.querySelector('.score-fill');
+    if(fill) fill.style.width = score+'%';
+  },100);
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+function saveHistory(prop, score){
+  history.unshift({ prop, score, ts: Date.now() });
+  renderHistory();
+}
+
+function renderHistory(){
+  const list = document.getElementById('history-list');
+  const title = document.getElementById('history-title');
+  if(!history.length){ title.style.display='none'; list.innerHTML=''; return; }
+  title.style.display='block';
+  list.innerHTML = history.slice(0,8).map(h => {
+    const s = Math.max(0,Math.min(100,h.score||0));
+    const c = s>=70?'var(--green)':s>=40?'var(--yellow)':'var(--red)';
+    return `<div class="history-item">
+      <div class="history-prop">${escHtml(h.prop)}</div>
+      <div class="history-score-badge" style="background:${c}22;color:${c}">${s}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── FLOW ──────────────────────────────────────────────────────────────────────
+function nextRound(){
+  // keep prop, re-attack
+  setPhase('input');
+  setTimeout(()=>startAttack(), 50);
+}
+
+function newProp(){
+  setPhase('input');
+  document.getElementById('proposition').value='';
+  document.getElementById('btn-attack').classList.remove('ready');
+}
+
+function resetAll(){
+  history=[];
+  roundCount=0;
+  document.getElementById('round-badge').textContent='第 0 轮';
+  renderHistory();
+  newProp();
+}
+
+function setPhase(p){
+  phase=p;
+  document.getElementById('loading').classList.toggle('visible', p==='loading');
+  document.getElementById('attacks-section').classList.toggle('visible', p==='attacks'||p==='summary');
+  document.getElementById('summary-section').classList.toggle('visible', p==='summary');
+  document.getElementById('btn-submit').style.display = p==='attacks'?'':'none';
+  if(p==='input'){
+    document.getElementById('attacks-section').classList.remove('visible');
+    document.getElementById('summary-section').classList.remove('visible');
+  }
+}
+
+// ── API ────────────────────────────────────────────────────────────────────────
+async function callClaude(system, messages){
+  const res = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens:1000,
+      system,
+      messages
+    })
+  });
+  if(!res.ok) throw new Error('API '+res.status);
+  const data = await res.json();
+  return data.content.map(b=>b.text||'').join('');
+}
+
+function escHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// init
+document.getElementById('btn-submit').style.display='none';
+</script>
+</body>
+</html>

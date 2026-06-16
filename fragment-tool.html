@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>碎片</title>
+<style>
+:root {
+  --bg: #0c0c10;
+  --surface: #13131a;
+  --surface2: #1a1a24;
+  --border: #22222e;
+  --border2: #2e2e3e;
+  --text: #e2e2ee;
+  --muted: #64647e;
+  --dim: #2a2a38;
+  --accent: #7c6fff;
+  --accent2: #4a9eff;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --pink: #f472b6;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { font-size:15px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── TABS ── */
+nav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg);
+}
+.tab {
+  flex: 1;
+  padding: 12px 8px 11px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  user-select: none;
+}
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+/* ── VIEWS ── */
+.view { display:none; flex:1; flex-direction:column; overflow:hidden; }
+.view.active { display:flex; }
+
+/* ── CAPTURE VIEW ── */
+#v-capture { gap:0; }
+
+.capture-area {
+  padding: 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+textarea#fragment-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-size: 14px;
+  color: var(--text);
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+  min-height: 90px;
+  max-height: 180px;
+  transition: border-color .15s;
+}
+textarea#fragment-input::placeholder { color: var(--muted); }
+textarea#fragment-input:focus { border-color: var(--accent); }
+
+.capture-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+.btn-capture {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity .15s, transform .1s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-capture:disabled { opacity: .35; }
+.btn-capture:not(:disabled):active { transform: scale(.96); }
+.btn-quick {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: border-color .15s, color .15s;
+}
+.btn-quick:hover { border-color: var(--accent2); color: var(--accent2); }
+.char-count { margin-left: auto; font-size: 11px; color: var(--dim); font-family: 'Courier New', monospace; }
+
+/* Processing state */
+#processing-strip {
+  display: none;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+  letter-spacing: .06em;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+#processing-strip.visible { display: flex; }
+.spin {
+  width: 10px; height: 10px;
+  border: 1.5px solid var(--dim);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Fragment result card */
+#result-card {
+  display: none;
+  margin: 0 16px 0;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+#result-card.visible { display: block; }
+.rc-section { margin-bottom: 12px; }
+.rc-section:last-child { margin-bottom: 0; }
+.rc-label {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.rc-proposition {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.6;
+  font-style: italic;
+}
+.rc-theme-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-family: 'Courier New', monospace;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+.rc-question {
+  font-size: 13px;
+  color: var(--accent2);
+  line-height: 1.6;
+}
+.rc-links { display: flex; flex-direction: column; gap: 6px; }
+.rc-link-item {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  padding: 6px 10px;
+  background: var(--surface2);
+  border-radius: 8px;
+  border-left: 2px solid var(--accent);
+  cursor: pointer;
+  transition: color .15s;
+}
+.rc-link-item:hover { color: var(--text); }
+.rc-link-item em { color: var(--text); font-style: normal; }
+
+.rc-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.btn-save {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity .15s;
+}
+.btn-discard {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s, color .15s;
+}
+.btn-discard:hover { border-color: var(--red); color: var(--red); }
+
+/* Recent on capture tab */
+#capture-recent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px 20px;
+}
+#capture-recent::-webkit-scrollbar { width: 3px; }
+#capture-recent::-webkit-scrollbar-thumb { background: var(--border); }
+.recent-label {
+  font-size: 9px;
+  color: var(--dim);
+  font-family: 'Courier New', monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* ── FRAGMENTS VIEW ── */
+#v-fragments { }
+.frag-toolbar {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.search-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+.search-input::placeholder { color: var(--muted); }
+.search-input:focus { border-color: var(--accent); }
+.frag-count { font-size: 10px; color: var(--muted); font-family: 'Courier New', monospace; flex-shrink: 0; }
+
+#frag-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#frag-list::-webkit-scrollbar { width: 3px; }
+#frag-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+.frag-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.frag-card:hover { border-color: var(--border2); }
+.frag-card.expanded { border-color: var(--accent); }
+.frag-header { display: flex; align-items: flex-start; gap: 10px; }
+.frag-prop {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+  font-style: italic;
+}
+.frag-date { font-size: 10px; color: var(--dim); font-family: 'Courier New', monospace; flex-shrink: 0; margin-top: 2px; }
+.frag-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.frag-body-wrap { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.frag-card.expanded .frag-body-wrap { display: block; }
+.frag-original {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-radius: 6px;
+}
+.frag-question { font-size: 12px; color: var(--accent2); line-height: 1.5; margin-bottom: 8px; }
+.frag-links-mini { display: flex; flex-direction: column; gap: 4px; }
+.frag-link-mini {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 4px 8px;
+  background: var(--surface2);
+  border-radius: 6px;
+  border-left: 2px solid var(--accent);
+}
+.frag-link-mini em { color: var(--text); font-style: normal; }
+.frag-delete {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: color .15s;
+  display: inline-block;
+}
+.frag-delete:hover { color: var(--red); }
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  gap: 8px;
+  line-height: 1.7;
+  padding: 32px;
+}
+.empty-icon { font-size: 28px; opacity: .3; }
+
+/* ── CLUSTERS VIEW ── */
+#v-clusters { }
+.cluster-toolbar {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.cluster-toolbar-title {
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.btn-recluster {
+  margin-left: auto;
+  font-size: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: border-color .15s, color .15s;
+}
+.btn-recluster:hover { border-color: var(--accent); color: var(--accent); }
+
+#cluster-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#cluster-list::-webkit-scrollbar { width: 3px; }
+#cluster-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+.cluster-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.cluster-head {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.cluster-head:hover { background: var(--surface2); }
+.cluster-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.cluster-name { font-size: 13px; font-weight: 600; flex: 1; }
+.cluster-count { font-size: 10px; color: var(--muted); font-family: 'Courier New', monospace; }
+.cluster-chevron { font-size: 10px; color: var(--muted); transition: transform .2s; }
+.cluster-card.open .cluster-chevron { transform: rotate(90deg); }
+.cluster-insight {
+  display: none;
+  padding: 0 14px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  border-bottom: 1px solid var(--border);
+}
+.cluster-card.open .cluster-insight { display: block; }
+.cluster-items { display: none; padding: 8px 14px 12px; gap: 6px; flex-direction: column; }
+.cluster-card.open .cluster-items { display: flex; }
+.cluster-item {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.5;
+  padding: 6px 8px;
+  background: var(--surface2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color .15s;
+}
+.cluster-item:hover { color: var(--text); }
+
+/* THEME COLORS */
+.theme-色 { --tc:#f472b6; }
+.theme-存 { --tc:#a78bfa; }
+.theme-认 { --tc:#60a5fa; }
+.theme-行 { --tc:#4ade80; }
+.theme-关 { --tc:#fbbf24; }
+.theme-自 { --tc:#f87171; }
+.theme-other { --tc:#6b7280; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="tab active" data-view="capture" onclick="switchTab('capture')">捕捉</div>
+  <div class="tab" data-view="fragments" onclick="switchTab('fragments')">碎片库</div>
+  <div class="tab" data-view="clusters" onclick="switchTab('clusters')">主题图</div>
+</nav>
+
+<!-- CAPTURE -->
+<div class="view active" id="v-capture">
+  <div class="capture-area">
+    <textarea id="fragment-input" placeholder="想到什么就写，一句话也行……" oninput="onInput()" onkeydown="handleCaptureKey(event)"></textarea>
+    <div class="capture-actions">
+      <button class="btn-capture" id="btn-process" onclick="processFragment()" disabled>
+        <span>分析</span>
+      </button>
+      <button class="btn-quick" onclick="quickSave()">直接存</button>
+      <span class="char-count" id="char-count">0</span>
+    </div>
+  </div>
+
+  <div id="processing-strip">
+    <div class="spin"></div>
+    <span id="processing-text">提取命题中…</span>
+  </div>
+
+  <div style="flex:1; overflow-y:auto; padding:0 0 8px;">
+    <div id="result-card">
+      <div class="rc-section">
+        <div class="rc-label">核心命题</div>
+        <div class="rc-proposition" id="rc-proposition"></div>
+      </div>
+      <div class="rc-section">
+        <div class="rc-label">主题标签</div>
+        <div id="rc-themes"></div>
+      </div>
+      <div class="rc-section" id="rc-links-section">
+        <div class="rc-label">关联已有碎片</div>
+        <div class="rc-links" id="rc-links"></div>
+      </div>
+      <div class="rc-section">
+        <div class="rc-label">追问</div>
+        <div class="rc-question" id="rc-question"></div>
+      </div>
+      <div class="rc-actions">
+        <button class="btn-save" onclick="saveFragment()">存入碎片库</button>
+        <button class="btn-discard" onclick="discardResult()">丢弃</button>
+      </div>
+    </div>
+
+    <div id="capture-recent" style="padding-top:12px;">
+      <div class="recent-label">最近存入</div>
+      <div id="recent-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FRAGMENTS -->
+<div class="view" id="v-fragments">
+  <div class="frag-toolbar">
+    <input class="search-input" placeholder="搜索碎片…" oninput="filterFragments(this.value)">
+    <span class="frag-count" id="frag-count">0</span>
+  </div>
+  <div id="frag-list">
+    <div class="empty-state" id="frag-empty">
+      <div class="empty-icon">◈</div>
+      <div>还没有碎片<br>去捕捉页面记录第一个</div>
+    </div>
+  </div>
+</div>
+
+<!-- CLUSTERS -->
+<div class="view" id="v-clusters">
+  <div class="cluster-toolbar">
+    <span class="cluster-toolbar-title">主题聚类</span>
+    <button class="btn-recluster" onclick="buildClusters()">重新聚类</button>
+  </div>
+  <div id="cluster-list">
+    <div class="empty-state" id="cluster-empty">
+      <div class="empty-icon">⬡</div>
+      <div>积累几条碎片后<br>点击重新聚类查看主题分布</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let fragments = [];
+let pendingResult = null;
+let expandedFrag = null;
+
+const THEME_COLORS = {
+  '存在': '#a78bfa', '本体': '#a78bfa', '有限性': '#a78bfa', 'Dasein': '#a78bfa',
+  '认识': '#60a5fa', '知识': '#60a5fa', '框架': '#60a5fa', '认识论': '#60a5fa',
+  '行动': '#4ade80', '实践': '#4ade80', '知行': '#4ade80',
+  '关系': '#fbbf24', '他者': '#fbbf24', '连接': '#fbbf24',
+  '自我': '#f87171', '身份': '#f87171', '自救': '#f87171',
+  '道': '#f472b6', '空性': '#f472b6', '本体论': '#f472b6',
+};
+function themeColor(t) {
+  for (const [k,v] of Object.entries(THEME_COLORS)) {
+    if (t.includes(k)) return v;
+  }
+  return '#6b7280';
+}
+
+// ── STORAGE ──────────────────────────────────────────────────────────────────
+async function loadFromStorage() {
+  try {
+    const r = await window.storage.get('fragments');
+    if (r) fragments = JSON.parse(r.value);
+  } catch(e) { fragments = []; }
+  renderAll();
+}
+
+async function persist() {
+  try {
+    await window.storage.set('fragments', JSON.stringify(fragments));
+  } catch(e) {}
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === id));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'v-' + id));
+  if (id === 'clusters' && fragments.length > 0) buildClusters();
+  if (id === 'fragments') renderFragments(fragments);
+}
+
+// ── INPUT ─────────────────────────────────────────────────────────────────────
+function onInput() {
+  const val = document.getElementById('fragment-input').value;
+  document.getElementById('char-count').textContent = val.length;
+  document.getElementById('btn-process').disabled = val.trim().length < 3;
+}
+
+function handleCaptureKey(e) {
+  if (e.key === 'Enter' && e.metaKey) processFragment();
+}
+
+// ── PROCESS ──────────────────────────────────────────────────────────────────
+async function processFragment() {
+  const text = document.getElementById('fragment-input').value.trim();
+  if (!text) return;
+
+  document.getElementById('btn-process').disabled = true;
+  showProcessing('提取命题中…');
+
+  const existingSummary = fragments.slice(-8).map((f,i) =>
+    `[${i}] ${f.proposition}`
+  ).join('\n');
+
+  const system = `你是一个思想记录助手，帮助用户整理思维碎片。用户的背景：22岁中国男性，有深厚的哲学框架（道、空性、Dasein、知行合一、实用主义谬误主义），喜欢高密度思考，习惯独立整合不同思想传统。
+
+用户输入一段思维碎片（可能是一句直觉，也可能是一段半成形的思考），你需要：
+1. 提取核心命题（一句话，保留原意，去除冗余，稍微精炼但不要过度哲学化）
+2. 打2-4个主题标签（中文，简短，如"存在"、"认识论"、"关系"、"行动"、"自我"、"本体"等）
+3. 找出与已有碎片的潜在关联（最多2条，说清楚是什么关联，不是"都是哲学"那种废话）
+4. 提一个追问（不是苏格拉底式的刁难，是真正能往下推进思考的问题）
+
+已有碎片摘要（供关联用，可能为空）：
+${existingSummary || '（暂无）'}
+
+严格返回JSON，不要任何额外文字：
+{
+  "proposition": "核心命题",
+  "themes": ["标签1", "标签2"],
+  "links": [
+    { "index": 数字或null, "note": "关联说明" }
+  ],
+  "question": "追问"
+}`;
+
+  try {
+    const raw = await callClaude(system, [{ role: 'user', content: text }]);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    pendingResult = { original: text, ...parsed };
+    hideProcessing();
+    showResult(parsed);
+  } catch(e) {
+    hideProcessing();
+    // fallback: quick save
+    pendingResult = {
+      original: text,
+      proposition: text,
+      themes: ['未分类'],
+      links: [],
+      question: ''
+    };
+    showResult(pendingResult);
+  }
+}
+
+function showResult(r) {
+  document.getElementById('result-card').classList.add('visible');
+  document.getElementById('rc-proposition').textContent = r.proposition;
+
+  // Themes
+  const themesEl = document.getElementById('rc-themes');
+  themesEl.innerHTML = r.themes.map(t => {
+    const c = themeColor(t);
+    return `<span class="rc-theme-tag" style="color:${c};border-color:${c}33">${t}</span>`;
+  }).join('');
+
+  // Links
+  const linksEl = document.getElementById('rc-links');
+  const linksSection = document.getElementById('rc-links-section');
+  const validLinks = (r.links || []).filter(l => l.index !== null && fragments[l.index]);
+  if (validLinks.length) {
+    linksSection.style.display = '';
+    linksEl.innerHTML = validLinks.map(l => {
+      const f = fragments[l.index];
+      return `<div class="rc-link-item" onclick="switchTab('fragments')">
+        <em>${f.proposition}</em><br>${l.note}
+      </div>`;
+    }).join('');
+  } else {
+    linksSection.style.display = 'none';
+  }
+
+  document.getElementById('rc-question').textContent = r.question || '–';
+}
+
+function discardResult() {
+  pendingResult = null;
+  document.getElementById('result-card').classList.remove('visible');
+  document.getElementById('fragment-input').value = '';
+  document.getElementById('char-count').textContent = '0';
+  document.getElementById('btn-process').disabled = true;
+}
+
+function saveFragment() {
+  if (!pendingResult) return;
+  const btn = document.querySelector('.btn-save');
+  if (btn && btn.disabled) return; // prevent double-tap
+  if (btn) { btn.disabled = true; btn.textContent = '已存入 ✓'; }
+
+  const frag = {
+    id: Date.now(),
+    original: pendingResult.original,
+    proposition: pendingResult.proposition,
+    themes: pendingResult.themes || [],
+    links: pendingResult.links || [],
+    question: pendingResult.question || '',
+    ts: new Date().toISOString(),
+  };
+  fragments.unshift(frag);
+  persist();
+  renderAll();
+
+  setTimeout(() => discardResult(), 800);
+}
+
+async function quickSave() {
+  const text = document.getElementById('fragment-input').value.trim();
+  if (!text) return;
+  const frag = {
+    id: Date.now(),
+    original: text,
+    proposition: text,
+    themes: ['未分类'],
+    links: [],
+    question: '',
+    ts: new Date().toISOString(),
+  };
+  fragments.unshift(frag);
+  persist();
+  renderAll();
+  document.getElementById('fragment-input').value = '';
+  document.getElementById('char-count').textContent = '0';
+  document.getElementById('btn-process').disabled = true;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderRecent();
+  renderFragments(fragments);
+  document.getElementById('frag-count').textContent = fragments.length;
+}
+
+function renderRecent() {
+  const el = document.getElementById('recent-list');
+  const recent = fragments.slice(0, 3);
+  if (!recent.length) { el.innerHTML = '<div style="font-size:12px;color:var(--dim)">暂无</div>'; return; }
+  el.innerHTML = recent.map(f => `
+    <div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="switchTab('fragments')">
+      <div style="font-size:12.5px;color:var(--muted);font-style:italic;line-height:1.5">${escHtml(f.proposition)}</div>
+      <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">
+        ${f.themes.map(t=>`<span style="font-size:9px;font-family:'Courier New',monospace;color:${themeColor(t)};border:1px solid ${themeColor(t)}33;padding:2px 7px;border-radius:12px">${t}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderFragments(list) {
+  const el = document.getElementById('frag-list');
+  const empty = document.getElementById('frag-empty');
+  document.getElementById('frag-count').textContent = list.length;
+
+  if (!list.length) {
+    empty.style.display = 'flex';
+    el.innerHTML = '';
+    el.appendChild(empty);
+    return;
+  }
+  empty.style.display = 'none';
+
+  el.innerHTML = list.map(f => {
+    const d = new Date(f.ts);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const isExpanded = expandedFrag === f.id;
+    const validLinks = (f.links||[]).filter(l => l.index !== null && fragments[l.index]);
+
+    return `<div class="frag-card${isExpanded?' expanded':''}" id="fc-${f.id}" onclick="toggleFrag(${f.id})">
+      <div class="frag-header">
+        <div class="frag-prop">${escHtml(f.proposition)}</div>
+        <div class="frag-date">${dateStr}</div>
+      </div>
+      <div class="frag-tags">
+        ${f.themes.map(t=>`<span class="rc-theme-tag" style="font-size:9px;font-family:'Courier New',monospace;color:${themeColor(t)};border-color:${themeColor(t)}33;padding:2px 8px">${t}</span>`).join('')}
+      </div>
+      <div class="frag-body-wrap">
+        ${f.original !== f.proposition ? `<div class="frag-original">${escHtml(f.original)}</div>` : ''}
+        ${f.question ? `<div class="frag-question">↳ ${escHtml(f.question)}</div>` : ''}
+        ${validLinks.length ? `<div class="frag-links-mini">
+          ${validLinks.map(l=>`<div class="frag-link-mini"><em>${escHtml(fragments[l.index]?.proposition||'')}</em> — ${escHtml(l.note)}</div>`).join('')}
+        </div>` : ''}
+        <span class="frag-delete" onclick="deleteFrag(event, ${f.id})">删除</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleFrag(id) {
+  expandedFrag = expandedFrag === id ? null : id;
+  renderFragments(getCurrentFragList());
+}
+
+function deleteFrag(e, id) {
+  e.stopPropagation();
+  fragments = fragments.filter(f => f.id !== id);
+  if (expandedFrag === id) expandedFrag = null;
+  persist();
+  renderAll();
+}
+
+function filterFragments(q) {
+  const lq = q.toLowerCase();
+  const list = q ? fragments.filter(f =>
+    f.proposition.toLowerCase().includes(lq) ||
+    f.original.toLowerCase().includes(lq) ||
+    f.themes.some(t => t.toLowerCase().includes(lq))
+  ) : fragments;
+  renderFragments(list);
+}
+
+function getCurrentFragList() {
+  const q = document.querySelector('.search-input')?.value || '';
+  if (!q) return fragments;
+  const lq = q.toLowerCase();
+  return fragments.filter(f =>
+    f.proposition.toLowerCase().includes(lq) ||
+    f.original.toLowerCase().includes(lq) ||
+    f.themes.some(t => t.toLowerCase().includes(lq))
+  );
+}
+
+// ── CLUSTERS ─────────────────────────────────────────────────────────────────
+async function buildClusters() {
+  if (fragments.length < 2) return;
+
+  const el = document.getElementById('cluster-list');
+  el.innerHTML = `<div class="empty-state"><div class="spin" style="width:16px;height:16px;border-width:2px"></div><div style="color:var(--muted);font-size:12px;margin-top:8px">聚类中…</div></div>`;
+
+  const propositions = fragments.map((f,i) => `[${i}] ${f.proposition}`).join('\n');
+
+  const system = `你是思想聚类助手。将下列编号命题按主题聚类。
+
+规则：
+- 3-6个主题群，每群起一个精确的中文名（2-5字）
+- 只按思想内容聚类，不按来源或传统
+- insight：每个主题群写一句话——这些碎片放在一起说明了什么，或者它们之间的张力是什么
+- 如果某条命题很孤立，单独成群也可以
+
+严格返回JSON：
+{
+  "clusters": [
+    {
+      "name": "主题名",
+      "color": "#hex颜色",
+      "indices": [数字数组],
+      "insight": "这组碎片放在一起说明……"
+    }
+  ]
+}`;
+
+  try {
+    const raw = await callClaude(system, [{ role: 'user', content: propositions }]);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    renderClusters(parsed.clusters);
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div>聚类失败，请重试</div></div>`;
+  }
+}
+
+function renderClusters(clusters) {
+  const el = document.getElementById('cluster-list');
+  document.getElementById('cluster-empty').style.display = 'none';
+
+  el.innerHTML = clusters.map((c, ci) => {
+    const items = (c.indices || [])
+      .filter(i => fragments[i])
+      .map(i => `<div class="cluster-item" onclick="goToFrag(${fragments[i].id})">${escHtml(fragments[i].proposition)}</div>`)
+      .join('');
+
+    return `<div class="cluster-card" id="cl-${ci}">
+      <div class="cluster-head" onclick="toggleCluster(${ci})">
+        <div class="cluster-dot" style="background:${c.color||'#6b7280'}"></div>
+        <div class="cluster-name">${escHtml(c.name)}</div>
+        <div class="cluster-count">${(c.indices||[]).length}</div>
+        <div class="cluster-chevron">›</div>
+      </div>
+      <div class="cluster-insight">${escHtml(c.insight||'')}</div>
+      <div class="cluster-items">${items}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCluster(ci) {
+  const el = document.getElementById(`cl-${ci}`);
+  el.classList.toggle('open');
+}
+
+function goToFrag(id) {
+  expandedFrag = id;
+  switchTab('fragments');
+  setTimeout(() => {
+    const el = document.getElementById(`fc-${id}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+// ── PROCESSING UI ─────────────────────────────────────────────────────────────
+function showProcessing(msg) {
+  document.getElementById('processing-text').textContent = msg;
+  document.getElementById('processing-strip').classList.add('visible');
+  document.getElementById('result-card').classList.remove('visible');
+}
+function hideProcessing() {
+  document.getElementById('processing-strip').classList.remove('visible');
+}
+
+// ── API ────────────────────────────────────────────────────────────────────────
+async function callClaude(system, messages) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system,
+      messages
+    })
+  });
+  if (!res.ok) throw new Error('API ' + res.status);
+  const data = await res.json();
+  return data.content.map(b => b.text || '').join('');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadFromStorage();
+</script>
+</body>
+</html>

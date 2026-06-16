@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>求职辅助</title>
+<style>
+:root {
+  --bg: #0c0c10;
+  --surface: #13131c;
+  --surface2: #1a1a26;
+  --border: #1e1e2e;
+  --border2: #2a2a3e;
+  --text: #e2e2f0;
+  --muted: #5e5e7e;
+  --dim: #252538;
+  --accent: #4a9eff;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --purple: #a78bfa;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:15px}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;
+}
+
+/* NAV */
+nav{
+  display:flex;border-bottom:1px solid var(--border);
+  flex-shrink:0;position:sticky;top:0;background:var(--bg);z-index:20;
+}
+.tab{
+  flex:1;padding:12px 6px 11px;font-size:10px;font-family:'Courier New',monospace;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  text-align:center;cursor:pointer;border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s;user-select:none;
+}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+
+/* VIEWS */
+.view{display:none;flex:1;flex-direction:column;padding:16px;gap:14px}
+.view.active{display:flex}
+
+/* SHARED */
+.section-label{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;
+}
+.form-input,.form-textarea{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:10px 13px;font-size:13.5px;color:var(--text);
+  font-family:inherit;outline:none;transition:border-color .15s;
+}
+.form-input:focus,.form-textarea:focus{border-color:var(--accent)}
+.form-textarea{resize:none;line-height:1.65;min-height:80px;max-height:200px}
+.btn-primary{
+  background:var(--accent);color:#fff;border:none;border-radius:9px;
+  padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:opacity .15s,transform .1s;
+  opacity:.4;width:100%;
+}
+.btn-primary.ready{opacity:1}
+.btn-primary.ready:active{transform:scale(.97)}
+.btn-secondary{
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  border-radius:9px;padding:10px 18px;font-size:12px;cursor:pointer;
+  font-family:inherit;transition:border-color .15s,color .15s;
+}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+
+/* LOADING */
+.loading-strip{
+  display:none;padding:14px;background:var(--surface);border-radius:10px;
+  font-size:11px;color:var(--muted);font-family:'Courier New',monospace;
+  letter-spacing:.06em;align-items:center;gap:8px;
+}
+.loading-strip.visible{display:flex}
+.spin{
+  width:10px;height:10px;border:1.5px solid var(--dim);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RESULT CARD */
+.result-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:14px;display:none;
+}
+.result-card.visible{display:block}
+.result-section{margin-bottom:14px}
+.result-section:last-child{margin-bottom:0}
+.result-label{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px;
+}
+
+/* COVER LETTER SPECIFIC */
+.cl-original{
+  font-size:13px;color:var(--muted);line-height:1.7;
+  padding:10px 12px;background:var(--surface2);border-radius:8px;
+  border-left:2px solid var(--muted);margin-bottom:10px;
+}
+.cl-english{
+  font-size:13.5px;color:var(--text);line-height:1.8;
+  padding:12px 14px;background:var(--surface2);border-radius:8px;
+  border-left:2px solid var(--accent);margin-bottom:10px;
+}
+.cl-annotations{display:flex;flex-direction:column;gap:6px}
+.cl-ann{
+  display:flex;gap:8px;align-items:flex-start;
+  font-size:12px;padding:6px 0;border-bottom:1px solid var(--dim);
+}
+.cl-ann:last-child{border-bottom:none}
+.ann-tag{
+  font-size:9px;font-weight:700;font-family:'Courier New',monospace;
+  padding:2px 7px;border-radius:4px;text-transform:uppercase;flex-shrink:0;margin-top:1px;
+}
+.tag-good{background:rgba(74,222,128,.12);color:var(--green)}
+.tag-weak{background:rgba(248,113,113,.12);color:var(--red)}
+.tag-reframe{background:rgba(251,191,36,.12);color:var(--yellow)}
+.tag-missing{background:rgba(167,139,250,.12);color:var(--purple)}
+.ann-text{color:var(--muted);line-height:1.55}
+.ann-text em{color:var(--text);font-style:normal}
+
+/* COPY BUTTON */
+.copy-btn{
+  font-size:10px;font-family:'Courier New',monospace;letter-spacing:.05em;
+  background:none;border:1px solid var(--border);color:var(--muted);
+  padding:5px 11px;border-radius:6px;cursor:pointer;margin-top:8px;
+  transition:border-color .15s,color .15s;
+}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* WEAKNESS CARDS */
+.weakness-option{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;margin-bottom:8px;
+}
+.wo-label{
+  font-size:9px;font-family:'Courier New',monospace;color:var(--muted);
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;
+}
+.wo-text{font-size:13px;color:var(--text);line-height:1.7}
+.wo-note{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+
+/* JD MATCH */
+.match-item{
+  padding:10px 0;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:10px;
+}
+.match-item:last-child{border-bottom:none}
+.match-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;
+}
+.match-body{flex:1}
+.match-req{font-size:12.5px;color:var(--text);margin-bottom:3px}
+.match-note{font-size:12px;color:var(--muted);line-height:1.55}
+
+/* PROFILE BOX */
+.profile-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;font-size:12px;
+  color:var(--muted);line-height:1.7;
+}
+.profile-box strong{color:var(--text)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="tab active" data-view="cl" onclick="switchTab('cl')">Cover Letter</div>
+  <div class="tab" data-view="weakness" onclick="switchTab('weakness')">弱点转化</div>
+  <div class="tab" data-view="jd" onclick="switchTab('jd')">JD 匹配</div>
+</nav>
+
+<!-- COVER LETTER -->
+<div class="view active" id="v-cl">
+  <div class="profile-box">
+    <strong>你的背景</strong>：心理学本科（VUW）· 无正式工作经验 · GPA偏低 · 目标：Wellington政策分析类岗位（MBIE/Treasury/MSD等）
+  </div>
+
+  <div>
+    <label class="section-label">你想在 cover letter 里说什么（中文写）</label>
+    <textarea class="form-textarea" id="cl-input" placeholder="用中文随便写，不用整理——你想表达的核心内容、你觉得自己的优势、你为什么想做这个岗位……" rows="5" oninput="onClInput()"></textarea>
+  </div>
+
+  <div>
+    <label class="section-label">目标岗位（可选）</label>
+    <input class="form-input" id="cl-role" placeholder="e.g. Policy Analyst Graduate, MBIE">
+  </div>
+
+  <button class="btn-primary" id="cl-btn" onclick="runCoverLetter()" disabled>转化 + 分析</button>
+
+  <div class="loading-strip" id="cl-loading">
+    <div class="spin"></div>
+    <span>转化中…</span>
+  </div>
+
+  <div class="result-card" id="cl-result">
+    <div class="result-section">
+      <div class="result-label">英文转化</div>
+      <div class="cl-english" id="cl-english"></div>
+      <button class="copy-btn" onclick="copyText('cl-english')">复制英文</button>
+    </div>
+    <div class="result-section">
+      <div class="result-label">逐点分析</div>
+      <div class="cl-annotations" id="cl-anns"></div>
+    </div>
+  </div>
+</div>
+
+<!-- WEAKNESS -->
+<div class="view" id="v-weakness">
+  <div class="profile-box">
+    针对你的具体处境：心理学背景、无实习、GPA问题——找到真实的叙事角度，不是美化，是换框架。
+  </div>
+
+  <div>
+    <label class="section-label">你觉得是劣势的点</label>
+    <input class="form-input" id="wk-input" placeholder="e.g. 没有实习经历  /  GPA不高  /  心理学和政策不直接相关" oninput="onWkInput()">
+  </div>
+
+  <div>
+    <label class="section-label">目标岗位类型</label>
+    <input class="form-input" id="wk-role" placeholder="e.g. 政策分析师  /  研究助理  /  Big Four consulting">
+  </div>
+
+  <button class="btn-primary" id="wk-btn" onclick="runWeakness()" disabled>找叙事角度</button>
+
+  <div class="loading-strip" id="wk-loading">
+    <div class="spin"></div>
+    <span>分析中…</span>
+  </div>
+
+  <div class="result-card" id="wk-result">
+    <div class="result-label">叙事框架选项</div>
+    <div id="wk-options"></div>
+    <div id="wk-warning" style="margin-top:10px;font-size:12px;color:var(--muted);display:none"></div>
+  </div>
+</div>
+
+<!-- JD MATCH -->
+<div class="view" id="v-jd">
+  <div>
+    <label class="section-label">粘贴 JD 内容</label>
+    <textarea class="form-textarea" id="jd-input" placeholder="把职位描述粘贴进来……" rows="6" oninput="onJdInput()"></textarea>
+  </div>
+
+  <button class="btn-primary" id="jd-btn" onclick="runJD()" disabled>分析匹配度</button>
+
+  <div class="loading-strip" id="jd-loading">
+    <div class="spin"></div>
+    <span>分析中…</span>
+  </div>
+
+  <div class="result-card" id="jd-result">
+    <div class="result-section">
+      <div class="result-label">可以对应的要求</div>
+      <div id="jd-matches"></div>
+    </div>
+    <div class="result-section">
+      <div class="result-label">需要正面承认的 gap</div>
+      <div id="jd-gaps"></div>
+    </div>
+    <div class="result-section" id="jd-strategy-wrap">
+      <div class="result-label">整体策略</div>
+      <div id="jd-strategy" style="font-size:13px;color:var(--muted);line-height:1.75"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PROFILE = `候选人背景：
+- 姓名：张博闻（Bowen Zhang）
+- 学历：维多利亚大学惠灵顿（VUW）心理学本科，刚毕业
+- GPA：偏低（有一段时间脱离状态导致的，现在已恢复）
+- 工作经验：无正式工作经验；协助家人经营惠灵顿Te Aro区一家美甲沙龙（运营、技术支持、客户沟通）
+- 优势：极强的自我驱动式学习能力；广泛的跨学科知识整合（哲学、心理学、政治经济）；分析性思维；中英双语；对新西兰政策环境有真实的了解和兴趣
+- 目标：Wellington政策分析类岗位（MBIE、Treasury、MSD、Ministry for Regulation等graduate programme）
+- 语言：中文母语，英文接近C1学术水平，日常口语register仍在提升中`;
+
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===id));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+id));
+}
+
+function onClInput(){
+  const v=document.getElementById('cl-input').value.trim();
+  const btn=document.getElementById('cl-btn');
+  btn.disabled=v.length<10;
+  btn.classList.toggle('ready',v.length>=10);
+}
+function onWkInput(){
+  const v=document.getElementById('wk-input').value.trim();
+  const btn=document.getElementById('wk-btn');
+  btn.disabled=v.length<3;
+  btn.classList.toggle('ready',v.length>=3);
+}
+function onJdInput(){
+  const v=document.getElementById('jd-input').value.trim();
+  const btn=document.getElementById('jd-btn');
+  btn.disabled=v.length<30;
+  btn.classList.toggle('ready',v.length>=30);
+}
+
+// ── COVER LETTER ─────────────────────────────────────────────────────────────
+async function runCoverLetter(){
+  const input=document.getElementById('cl-input').value.trim();
+  const role=document.getElementById('cl-role').value.trim();
+  if(!input) return;
+
+  setLoading('cl',true);
+  document.getElementById('cl-result').classList.remove('visible');
+
+  const system=`你是一个新西兰求职写作顾问，专门帮助应届生把中文思路转化为符合NZ公共服务岗位标准的英文cover letter段落。
+
+${PROFILE}
+
+目标岗位：${role||'政策分析类岗位（Wellington）'}
+
+任务：
+1. 把用户的中文内容转化为自然、专业的英文段落（不是直译，是重新表达成NZ政府机构喜欢看到的语气和结构）
+2. 逐点分析这段内容：哪些有说服力、哪些太弱、哪些需要重新框架、哪些关键信息缺失
+
+分析标签：
+- good：这个点对政策岗位有说服力，表达也得当
+- weak：逻辑跳跃、太模糊、或对这个岗位没有针对性
+- reframe：内容本身可用但需要换一种说法
+- missing：cover letter里应该有但没有提到的重要内容
+
+严格返回JSON：
+{
+  "english": "英文段落",
+  "annotations": [
+    { "tag": "good|weak|reframe|missing", "point": "指的是哪个点", "note": "具体说明" }
+  ]
+}`;
+
+  try{
+    const raw=await callClaude(system,[{role:'user',content:input}]);
+    const clean=raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const parsed=JSON.parse(clean);
+    renderCL(parsed);
+    setLoading('cl',false);
+    document.getElementById('cl-result').classList.add('visible');
+  }catch(e){
+    setLoading('cl',false);
+    alert('转化失败，请重试');
+  }
+}
+
+function renderCL(data){
+  document.getElementById('cl-english').textContent=data.english||'';
+  const tagLabels={good:'✓ 有力',weak:'△ 弱',reframe:'↺ 换框架',missing:'+ 缺失'};
+  const tagClasses={good:'tag-good',weak:'tag-weak',reframe:'tag-reframe',missing:'tag-missing'};
+  document.getElementById('cl-anns').innerHTML=(data.annotations||[]).map(a=>`
+    <div class="cl-ann">
+      <span class="ann-tag ${tagClasses[a.tag]||'tag-weak'}">${tagLabels[a.tag]||a.tag}</span>
+      <div class="ann-text"><em>${escHtml(a.point)}</em>：${escHtml(a.note)}</div>
+    </div>
+  `).join('');
+}
+
+// ── WEAKNESS ──────────────────────────────────────────────────────────────────
+async function runWeakness(){
+  const input=document.getElementById('wk-input').value.trim();
+  const role=document.getElementById('wk-role').value.trim();
+  if(!input) return;
+
+  setLoading('wk',true);
+  document.getElementById('wk-result').classList.remove('visible');
+
+  const system=`你是一个NZ求职顾问，帮助候选人找到处理简历/cover letter中劣势的真实叙事角度。
+
+${PROFILE}
+
+目标岗位：${role||'政策分析类岗位'}
+
+重要原则：
+- 不是帮候选人撒谎或美化，而是找到真实的、有说服力的框架
+- 每个选项都必须基于候选人的真实经历，不能凭空捏造
+- 如果某个弱点在这个岗位语境下确实很难处理，如实说，不要硬拗
+
+给出2-3个叙事框架选项，每个选项包括：
+- 框架名称（2-4字）
+- 具体怎么说（1-2句，可以直接用在cover letter或面试中的措辞）
+- 这个框架的适用场景和潜在风险
+
+同时：如果这个弱点在目标岗位中是真实的障碍，给出一个诚实的警示。
+
+严格返回JSON：
+{
+  "options": [
+    { "name": "框架名", "script": "具体措辞", "note": "适用场景和风险" }
+  ],
+  "warning": "诚实警示（如果有的话，没有就返回空字符串）"
+}`;
+
+  try{
+    const raw=await callClaude(system,[{role:'user',content:`劣势：${input}`}]);
+    const clean=raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const parsed=JSON.parse(clean);
+    renderWeakness(parsed);
+    setLoading('wk',false);
+    document.getElementById('wk-result').classList.add('visible');
+  }catch(e){
+    setLoading('wk',false);
+    alert('分析失败，请重试');
+  }
+}
+
+function renderWeakness(data){
+  document.getElementById('wk-options').innerHTML=(data.options||[]).map((o,i)=>`
+    <div class="weakness-option">
+      <div class="wo-label">选项 ${i+1} · ${escHtml(o.name)}</div>
+      <div class="wo-text">"${escHtml(o.script)}"</div>
+      <div class="wo-note">${escHtml(o.note)}</div>
+    </div>
+  `).join('');
+  const warnEl=document.getElementById('wk-warning');
+  if(data.warning){
+    warnEl.style.display='block';
+    warnEl.innerHTML=`<span style="color:var(--yellow);font-family:'Courier New',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase">⚠ 诚实提醒</span><br>${escHtml(data.warning)}`;
+  } else { warnEl.style.display='none'; }
+}
+
+// ── JD MATCH ──────────────────────────────────────────────────────────────────
+async function runJD(){
+  const jd=document.getElementById('jd-input').value.trim();
+  if(!jd) return;
+
+  setLoading('jd',true);
+  document.getElementById('jd-result').classList.remove('visible');
+
+  const system=`你是一个NZ求职顾问，分析候选人与职位描述的匹配度。
+
+${PROFILE}
+
+任务：
+1. 找出JD里候选人可以真实对应的要求（基于他的真实背景，不要强行拉扯）
+2. 找出真实存在的gap，以及如何在cover letter/面试中正面承认
+3. 给出整体策略：这个申请的核心叙事应该是什么
+
+严格返回JSON：
+{
+  "matches": [
+    { "requirement": "JD里的要求", "how": "候选人怎么对应", "strength": "strong|moderate|stretch" }
+  ],
+  "gaps": [
+    { "gap": "gap是什么", "how_to_address": "怎么承认和处理" }
+  ],
+  "strategy": "整体申请策略（2-3句）"
+}`;
+
+  try{
+    const raw=await callClaude(system,[{role:'user',content:`JD内容：\n${jd}`}]);
+    const clean=raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const parsed=JSON.parse(clean);
+    renderJD(parsed);
+    setLoading('jd',false);
+    document.getElementById('jd-result').classList.add('visible');
+  }catch(e){
+    setLoading('jd',false);
+    alert('分析失败，请重试');
+  }
+}
+
+function renderJD(data){
+  const strengthColors={strong:'var(--green)',moderate:'var(--yellow)',stretch:'var(--red)'};
+  const strengthLabels={strong:'强对应',moderate:'可对应',stretch:'需努力'};
+
+  document.getElementById('jd-matches').innerHTML=(data.matches||[]).map(m=>`
+    <div class="match-item">
+      <div class="match-dot" style="background:${strengthColors[m.strength]||'var(--muted)'}"></div>
+      <div class="match-body">
+        <div class="match-req">${escHtml(m.requirement)} <span style="font-size:10px;font-family:'Courier New',monospace;color:${strengthColors[m.strength]||'var(--muted)'}">${strengthLabels[m.strength]||''}</span></div>
+        <div class="match-note">${escHtml(m.how)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('jd-gaps').innerHTML=(data.gaps||[]).map(g=>`
+    <div class="match-item">
+      <div class="match-dot" style="background:var(--muted)"></div>
+      <div class="match-body">
+        <div class="match-req" style="color:var(--muted)">${escHtml(g.gap)}</div>
+        <div class="match-note">${escHtml(g.how_to_address)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('jd-strategy').textContent=data.strategy||'';
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function setLoading(id,v){
+  document.getElementById(id+'-loading').classList.toggle('visible',v);
+  document.getElementById(id+'-btn').disabled=v;
+}
+
+function copyText(id){
+  const text=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=event.target;
+    btn.textContent='已复制 ✓';
+    setTimeout(()=>btn.textContent='复制英文',1500);
+  });
+}
+
+async function callClaude(system,messages){
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,system,messages})
+  });
+  if(!res.ok) throw new Error('API '+res.status);
+  const data=await res.json();
+  return data.content.map(b=>b.text||'').join('');
+}
+
+function escHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

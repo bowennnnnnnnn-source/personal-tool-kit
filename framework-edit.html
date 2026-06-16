@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>框架编辑器</title>
+<style>
+:root {
+  --bg: #0b0b0f;
+  --surface: #13131c;
+  --surface2: #1a1a26;
+  --border: #222230;
+  --border2: #2e2e42;
+  --text: #e2e2f0;
+  --muted: #60607a;
+  --dim: #2a2a3c;
+  --accent: #7c6fff;
+  --blue: #4a9eff;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --pink: #f472b6;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,'Helvetica Neue',sans-serif;overflow:hidden}
+
+/* LAYOUT */
+#app{display:flex;flex-direction:column;height:100%}
+
+header{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  flex-shrink:0;background:var(--bg);z-index:30;
+}
+.logo{font-family:'Courier New',monospace;font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.header-actions{margin-left:auto;display:flex;gap:6px}
+.hbtn{
+  font-size:10px;font-family:'Courier New',monospace;letter-spacing:.05em;
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  padding:5px 11px;border-radius:7px;cursor:pointer;
+  transition:border-color .15s,color .15s;white-space:nowrap;
+}
+.hbtn:hover{border-color:var(--accent);color:var(--accent)}
+.hbtn.danger:hover{border-color:var(--red);color:var(--red)}
+
+#canvas-wrap{
+  flex:1;position:relative;overflow:hidden;
+  touch-action:none;cursor:default;
+}
+canvas#c{position:absolute;top:0;left:0}
+
+/* TOOLBAR (bottom) */
+#toolbar{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 14px;border-top:1px solid var(--border);
+  flex-shrink:0;background:var(--bg);overflow-x:auto;
+}
+#toolbar::-webkit-scrollbar{display:none}
+.tool-btn{
+  display:flex;align-items:center;gap:5px;
+  font-size:10px;font-family:'Courier New',monospace;letter-spacing:.05em;
+  background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;
+  transition:border-color .15s,color .15s,background .15s;flex-shrink:0;
+}
+.tool-btn:hover,.tool-btn.active{border-color:var(--accent);color:var(--accent);background:var(--surface2)}
+.tool-sep{width:1px;height:20px;background:var(--border);flex-shrink:0}
+
+/* PANELS (slide up from bottom) */
+.panel{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--surface);border-top:1px solid var(--border);border-radius:16px 16px 0 0;
+  transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);
+  z-index:20;max-height:70%;display:flex;flex-direction:column;
+}
+.panel.open{transform:translateY(0)}
+.panel-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 4px;cursor:pointer;flex-shrink:0}
+.panel-title{font-size:11px;font-family:'Courier New',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 16px 10px;flex-shrink:0}
+.panel-scroll{flex:1;overflow-y:auto;padding:0 16px 24px}
+.panel-scroll::-webkit-scrollbar{width:3px}
+.panel-scroll::-webkit-scrollbar-thumb{background:var(--border)}
+
+/* FORM ELEMENTS */
+.form-group{margin-bottom:14px}
+.form-label{font-size:9px;font-family:'Courier New',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block}
+.form-input,.form-textarea{
+  width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;
+  transition:border-color .15s;
+}
+.form-input:focus,.form-textarea:focus{border-color:var(--accent)}
+.form-textarea{resize:none;line-height:1.6;min-height:72px}
+.color-row{display:flex;gap:6px;flex-wrap:wrap}
+.color-swatch{
+  width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;
+  transition:border-color .15s,transform .1s;flex-shrink:0;
+}
+.color-swatch:hover{transform:scale(1.1)}
+.color-swatch.selected{border-color:var(--text)}
+.form-actions{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.btn-primary{
+  background:var(--accent);color:#fff;border:none;border-radius:8px;
+  padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
+  transition:opacity .15s;flex:1;
+}
+.btn-primary:hover{opacity:.85}
+.btn-secondary{
+  background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:8px;padding:9px 16px;font-size:13px;cursor:pointer;font-family:inherit;
+  transition:border-color .15s,color .15s;
+}
+.btn-secondary:hover{border-color:var(--red);color:var(--red)}
+
+/* LAYER PICKER */
+.layer-row{display:flex;gap:6px;flex-wrap:wrap}
+.layer-chip{
+  font-size:10px;font-family:'Courier New',monospace;padding:4px 10px;border-radius:20px;
+  border:1px solid;cursor:pointer;transition:opacity .15s;opacity:.5;
+}
+.layer-chip.selected{opacity:1}
+
+/* OVERLAY */
+#overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:15;display:none}
+#overlay.visible{display:block}
+
+/* HINT */
+#hint{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;color:var(--muted);font-size:12px;line-height:1.8;
+  pointer-events:none;z-index:2;
+}
+
+/* CONTEXT MENU */
+#ctx-menu{
+  position:absolute;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:10px;padding:4px;z-index:40;display:none;min-width:160px;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+}
+#ctx-menu.visible{display:block}
+.ctx-item{
+  padding:8px 12px;font-size:12px;color:var(--text);cursor:pointer;border-radius:6px;
+  transition:background .1s;display:flex;align-items:center;gap:8px;
+}
+.ctx-item:hover{background:var(--dim)}
+.ctx-item.danger{color:var(--red)}
+.ctx-sep{height:1px;background:var(--border);margin:3px 0}
+
+/* TOAST */
+#toast{
+  position:absolute;top:60px;left:50%;transform:translateX(-50%) translateY(-10px);
+  background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
+  padding:8px 16px;font-size:12px;color:var(--text);
+  opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:50;
+  white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* EDGE LABEL TOOLTIP */
+#edge-tip{
+  position:absolute;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;font-size:11.5px;color:var(--text);
+  max-width:220px;line-height:1.6;pointer-events:none;opacity:0;
+  transition:opacity .15s;z-index:35;box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+#edge-tip.visible{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="logo">Framework</span>
+    <div class="header-actions">
+      <button class="hbtn" onclick="saveToStorage()">保存</button>
+      <button class="hbtn" onclick="resetToDefault()">重置</button>
+    </div>
+  </header>
+
+  <div id="canvas-wrap">
+    <canvas id="c"></canvas>
+    <div id="hint">长按节点编辑 · 工具栏添加新内容</div>
+    <div id="overlay" onclick="closeAllPanels()"></div>
+    <div id="ctx-menu"></div>
+    <div id="edge-tip"></div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="toolbar">
+    <button class="tool-btn" id="tool-select" onclick="setTool('select')">⬡ 选择</button>
+    <button class="tool-btn" id="tool-node" onclick="setTool('node')">＋ 节点</button>
+    <button class="tool-btn" id="tool-edge" onclick="setTool('edge')">⟶ 连线</button>
+    <div class="tool-sep"></div>
+    <button class="tool-btn" onclick="autoLayout()">⊞ 自动布局</button>
+    <button class="tool-btn" onclick="fitView()">⊡ 适配视图</button>
+  </div>
+</div>
+
+<!-- NODE EDIT PANEL -->
+<div class="panel" id="panel-node">
+  <div class="panel-handle" onclick="closePanel('panel-node')"></div>
+  <div class="panel-title" id="panel-node-title">编辑节点</div>
+  <div class="panel-scroll">
+    <div class="form-group">
+      <label class="form-label">英文名称</label>
+      <input class="form-input" id="ne-en" placeholder="e.g. Dao (道)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">中文说明</label>
+      <input class="form-input" id="ne-zh" placeholder="e.g. 道 · 现象背景">
+    </div>
+    <div class="form-group">
+      <label class="form-label">所属层</label>
+      <div class="layer-row" id="ne-layers"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">核心定位</label>
+      <textarea class="form-textarea" id="ne-body" placeholder="这个概念在框架中的位置…" rows="3"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">个人注释</label>
+      <textarea class="form-textarea" id="ne-note" placeholder="你自己的补充、修改、或质疑…" rows="3"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" onclick="commitNodeEdit()">保存</button>
+      <button class="btn-secondary" id="btn-delete-node" onclick="deleteSelectedNode()">删除节点</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDGE EDIT PANEL -->
+<div class="panel" id="panel-edge">
+  <div class="panel-handle" onclick="closePanel('panel-edge')"></div>
+  <div class="panel-title">编辑连线</div>
+  <div class="panel-scroll">
+    <div class="form-group">
+      <label class="form-label">关系描述</label>
+      <textarea class="form-textarea" id="ee-rel" placeholder="这条连线表达什么关系？" rows="3"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" onclick="commitEdgeEdit()">保存</button>
+      <button class="btn-secondary" onclick="deleteSelectedEdge()">删除连线</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD NODE PANEL -->
+<div class="panel" id="panel-addnode">
+  <div class="panel-handle" onclick="closePanel('panel-addnode')"></div>
+  <div class="panel-title">添加节点</div>
+  <div class="panel-scroll">
+    <div class="form-group">
+      <label class="form-label">英文名称 *</label>
+      <input class="form-input" id="an-en" placeholder="e.g. New Concept">
+    </div>
+    <div class="form-group">
+      <label class="form-label">中文说明</label>
+      <input class="form-input" id="an-zh" placeholder="e.g. 新概念 · 说明">
+    </div>
+    <div class="form-group">
+      <label class="form-label">所属层</label>
+      <div class="layer-row" id="an-layers"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">核心定位</label>
+      <textarea class="form-textarea" id="an-body" placeholder="这个概念的位置和功能…" rows="3"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">个人注释</label>
+      <textarea class="form-textarea" id="an-note" placeholder="你自己的补充…" rows="2"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" onclick="commitAddNode()">添加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const LAYERS = {
+  ontological:      { label:'本体论', color:'#4a9eff' },
+  phenomenological: { label:'现象学', color:'#a78bfa' },
+  existential:      { label:'生存论', color:'#34d399' },
+  praxis:           { label:'实践论', color:'#f59e0b' },
+  epistemological:  { label:'认识论', color:'#f87171' },
+};
+
+const DEFAULT_NODES = [
+  { id:'dao',         en:'Dao (道)',              zh:'道 · 现象背景',           layer:'ontological',      fx:.50,fy:.10, body:'道是一切现象得以显现的背景条件本身——不可被对象化，只能被逼近。', note:'' },
+  { id:'sunyata',     en:'Śūnyatā (空性)',         zh:'空性 · 现象学工具',       layer:'phenomenological', fx:.20,fy:.28, body:'仅作为现象学工具使用。任何现象都无独立自性，必须在关系网络中才能被理解。', note:'' },
+  { id:'integration', en:'The Integration',        zh:'整合 · 框架本身',         layer:'ontological',      fx:.50,fy:.28, body:'每一层解决前一层留下的问题，同时引入新的张力。没有终点，框架本身是活的。', note:'' },
+  { id:'dasein',      en:'Dasein (此在)',           zh:'此在 · 存在方式',         layer:'existential',      fx:.80,fy:.28, body:'人被抛入特定处境（Geworfenheit），然后在这个处境里向前筹划（Entwurf）。', note:'' },
+  { id:'finitude',    en:'Finitude & Sorge',        zh:'有限性与操心',            layer:'existential',      fx:.50,fy:.48, body:'Sorge是Dasein最基本的存在结构。有限性（向死而生）使关切变得真实。', note:'' },
+  { id:'yangming',    en:'Zhīxíng Héyī (知行合一)', zh:'知行合一 · 实践原则',    layer:'praxis',           fx:.20,fy:.68, body:'真正的知不是命题性知识，而是与行动不可分的知。', note:'' },
+  { id:'shouru',      en:'Shǒuruò (守弱)',          zh:'守弱 · 策略智慧',        layer:'praxis',           fx:.80,fy:.68, body:'守弱不是软弱，而是策略性存在方式。警惕：何时变成回避真实成就的自我保护？', note:'' },
+  { id:'epistemology',en:'Pragmatist Fallibilism',  zh:'实用主义谬误主义',       layer:'epistemological',  fx:.50,fy:.88, body:'"workable enough over correct"——保持对任何命题的永久保留权。', note:'' },
+];
+
+const DEFAULT_EDGES = [
+  { id:'e1',  from:'dao',         to:'sunyata',       rel:'道说"背景流动"；空性响应：前景中的自我与现象也无自性' },
+  { id:'e2',  from:'dao',         to:'integration',   rel:'道是整个框架最底层地基' },
+  { id:'e3',  from:'sunyata',     to:'finitude',       rel:'空性解构执念后，有限性回答：行动仍有重量，因为时间不可逆' },
+  { id:'e4',  from:'sunyata',     to:'integration',   rel:'空性作为现象学工具：任何节点的固化都可被重新打开' },
+  { id:'e5',  from:'dasein',      to:'finitude',      rel:'Dasein的结构性展开：被抛性是起点，有限性是最本真的可能性' },
+  { id:'e6',  from:'dasein',      to:'integration',   rel:'Dasein为框架提供"主体位置"' },
+  { id:'e7',  from:'finitude',    to:'yangming',      rel:'有限性赋予行动真实重量；知行合一将重量转化为实践原则' },
+  { id:'e8',  from:'finitude',    to:'shouru',        rel:'有限性确认处境真实性；守弱是有限条件下保持主动性的策略' },
+  { id:'e9',  from:'yangming',    to:'epistemology',  rel:'什么算"真正知道"？在行动中被验证、足够有效的那种知' },
+  { id:'e10', from:'shouru',      to:'epistemology',  rel:'永不完全掌握对方底牌，保持弹性是理性而非软弱' },
+  { id:'e11', from:'epistemology',to:'integration',   rel:'认识论是框架的自我免疫机制：防止框架本身变成教条' },
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let nodes = [], edges = [];
+let selectedNode = null, selectedEdge = null;
+let tool = 'select'; // 'select' | 'node' | 'edge'
+let edgeFrom = null;
+let W, H;
+let pan = {x:0,y:0}, zoom = 1;
+let dragging = null, dragOffset = {x:0,y:0};
+let panStart = null, panOrigin = null;
+let longPressTimer = null;
+let lastTap = 0;
+const NW = 130, NH = 52, NR = 8;
+
+// ── CANVAS ────────────────────────────────────────────────────────────────────
+const wrap = document.getElementById('canvas-wrap');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  draw();
+}
+
+// world→screen
+function wx(x){ return x * zoom + pan.x }
+function wy(y){ return y * zoom + pan.y }
+// screen→world
+function sx(x){ return (x - pan.x) / zoom }
+function sy(y){ return (y - pan.y) / zoom }
+
+function nodeWorldPos(n){ return { x: n.x, y: n.y } }
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  drawEdges();
+  drawNodes();
+  if (tool === 'edge' && edgeFrom) drawEdgePreview();
+}
+
+function drawEdges() {
+  edges.forEach(e => {
+    const a = nodes.find(n=>n.id===e.from);
+    const b = nodes.find(n=>n.id===e.to);
+    if (!a||!b) return;
+    const isSel = selectedEdge === e.id;
+    const layerColor = LAYERS[a.layer]?.color || '#888';
+
+    const ax=wx(a.x), ay=wy(a.y), bx=wx(b.x), by=wy(b.y);
+    const mx=(ax+bx)/2, my=(ay+by)/2;
+    const dx=bx-ax, dy=by-ay, len=Math.sqrt(dx*dx+dy*dy)||1;
+    const cpx = mx - dy/len*40*zoom, cpy = my + dx/len*40*zoom;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(ax,ay); ctx.quadraticCurveTo(cpx,cpy,bx,by);
+    ctx.strokeStyle = isSel ? layerColor : hexAlpha(layerColor,.28);
+    ctx.lineWidth = isSel ? 2.5 : 1.4;
+    ctx.stroke();
+
+    // arrow
+    const tx2=2*(bx-cpx), ty2=2*(by-cpy);
+    const tl=Math.sqrt(tx2*tx2+ty2*ty2)||1;
+    const ang=Math.atan2(ty2/tl,tx2/tl);
+    const aw=8*zoom;
+    ctx.beginPath();
+    ctx.moveTo(bx,by);
+    ctx.lineTo(bx-aw*Math.cos(ang-.4), by-aw*Math.sin(ang-.4));
+    ctx.lineTo(bx-aw*Math.cos(ang+.4), by-aw*Math.sin(ang+.4));
+    ctx.closePath();
+    ctx.fillStyle = isSel ? layerColor : hexAlpha(layerColor,.28);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawNodes() {
+  nodes.forEach(n => {
+    const layer = LAYERS[n.layer] || LAYERS.ontological;
+    const isSel = selectedNode === n.id;
+    const x=wx(n.x), y=wy(n.y);
+    const nw=NW*zoom, nh=NH*zoom, nr=NR*zoom;
+    const lx=x-nw/2, ly=y-nh/2;
+
+    ctx.save();
+    if (isSel) { ctx.shadowColor=layer.color; ctx.shadowBlur=16; }
+
+    // bg
+    ctx.beginPath(); roundRect(ctx,lx,ly,nw,nh,nr);
+    ctx.fillStyle = isSel ? '#1c1c2c' : '#111118';
+    ctx.fill();
+    ctx.strokeStyle = isSel ? layer.color : hexAlpha(layer.color,.45);
+    ctx.lineWidth = isSel ? 1.8 : 1;
+    ctx.stroke();
+    ctx.shadowBlur=0;
+
+    // layer tag
+    ctx.font=`600 ${8*zoom}px 'Courier New',monospace`;
+    ctx.fillStyle=hexAlpha(layer.color,.7);
+    ctx.textAlign='center';
+    ctx.fillText(n.layer.slice(0,4).toUpperCase(), x, ly+13*zoom);
+
+    // en
+    const enSize=Math.min(10,10)*zoom;
+    ctx.font=`600 ${enSize}px 'Courier New',monospace`;
+    ctx.fillStyle = isSel ? layer.color : '#e2e2f0';
+    const enText = n.en.length>17 ? n.en.slice(0,17)+'…' : n.en;
+    ctx.fillText(enText, x, ly+27*zoom);
+
+    // zh
+    ctx.font=`${9*zoom}px -apple-system,sans-serif`;
+    ctx.fillStyle='#60607a';
+    const zhText = (n.zh||'').split('·')[0].trim();
+    ctx.fillText(zhText.length>12?zhText.slice(0,12)+'…':zhText, x, ly+40*zoom);
+
+    // note dot
+    if (n.note) {
+      ctx.beginPath();
+      ctx.arc(x+nw/2-6*zoom, ly+6*zoom, 3*zoom, 0, Math.PI*2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+}
+
+function drawEdgePreview() {
+  const src = nodes.find(n=>n.id===edgeFrom);
+  if (!src||!previewPos) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(wx(src.x),wy(src.y));
+  ctx.lineTo(previewPos.x,previewPos.y);
+  ctx.strokeStyle=hexAlpha('#7c6fff',.5);
+  ctx.lineWidth=1.5;
+  ctx.setLineDash([5,4]);
+  ctx.stroke();
+  ctx.restore();
+}
+
+let previewPos = null;
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+function hexAlpha(hex,a){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ── HIT TEST ──────────────────────────────────────────────────────────────────
+function hitNode(sx_,sy_){
+  for(const n of nodes){
+    const nx=wx(n.x),ny=wy(n.y),nw=NW*zoom,nh=NH*zoom;
+    if(sx_>=nx-nw/2&&sx_<=nx+nw/2&&sy_>=ny-nh/2&&sy_<=ny+nh/2) return n;
+  }
+  return null;
+}
+
+function hitEdge(sx_,sy_){
+  for(const e of edges){
+    const a=nodes.find(n=>n.id===e.from), b=nodes.find(n=>n.id===e.to);
+    if(!a||!b) continue;
+    const ax=wx(a.x),ay=wy(a.y),bx=wx(b.x),by=wy(b.y);
+    const mx=(ax+bx)/2,my=(ay+by)/2;
+    const dx=bx-ax,dy=by-ay,len=Math.sqrt(dx*dx+dy*dy)||1;
+    const cpx=mx-dy/len*40*zoom, cpy=my+dx/len*40*zoom;
+    if(distToQuadBezier(sx_,sy_,ax,ay,cpx,cpy,bx,by)<12) return e;
+  }
+  return null;
+}
+
+function distToQuadBezier(px,py,x0,y0,cx,cy,x1,y1){
+  let minD=Infinity;
+  for(let t=0;t<=1;t+=.05){
+    const mt=1-t;
+    const bx=mt*mt*x0+2*mt*t*cx+t*t*x1;
+    const by=mt*mt*y0+2*mt*t*cy+t*t*y1;
+    const d=Math.sqrt((px-bx)**2+(py-by)**2);
+    if(d<minD) minD=d;
+  }
+  return minD;
+}
+
+// ── POINTER EVENTS ────────────────────────────────────────────────────────────
+let pointers={}, pinchDist=null;
+
+canvas.addEventListener('pointerdown', e=>{
+  canvas.setPointerCapture(e.pointerId);
+  pointers[e.pointerId]=e;
+  const px=e.offsetX, py=e.offsetY;
+
+  if(Object.keys(pointers).length===2){ pinchDist=getPinchDist(); return; }
+
+  const n=hitNode(px,py);
+  const edge=!n?hitEdge(px,py):null;
+
+  if(tool==='select'){
+    if(n){
+      dragging=n; dragOffset={x:px-wx(n.x), y:py-wy(n.y)};
+      selectedNode=n.id; selectedEdge=null;
+      hideEdgeTip();
+      // long press
+      longPressTimer=setTimeout(()=>{ dragging=null; openNodeEdit(n); }, 500);
+      draw();
+    } else if(edge){
+      selectedEdge=edge.id; selectedNode=null; dragging=null;
+      showEdgeTip(edge, px, py);
+      draw();
+    } else {
+      selectedNode=null; selectedEdge=null;
+      panStart={x:px,y:py}; panOrigin={x:pan.x,y:pan.y};
+      hideEdgeTip(); draw();
+    }
+  } else if(tool==='node'){
+    const wx_=sx(px), wy_=sy(py);
+    openAddNode(wx_,wy_);
+  } else if(tool==='edge'){
+    if(n){
+      if(!edgeFrom){ edgeFrom=n.id; showToast('点击目标节点完成连线'); }
+      else if(edgeFrom!==n.id){
+        addEdge(edgeFrom, n.id);
+        edgeFrom=null; previewPos=null;
+        showToast('连线已添加');
+        draw();
+      }
+    }
+  }
+});
+
+canvas.addEventListener('pointermove', e=>{
+  pointers[e.pointerId]=e;
+  const px=e.offsetX, py=e.offsetY;
+
+  if(Object.keys(pointers).length===2){
+    const nd=getPinchDist();
+    if(pinchDist){
+      const factor=nd/pinchDist;
+      const cx=(Object.values(pointers)[0].offsetX+Object.values(pointers)[1].offsetX)/2;
+      const cy=(Object.values(pointers)[0].offsetY+Object.values(pointers)[1].offsetY)/2;
+      const wx0=sx(cx),wy0=sy(cy);
+      zoom=Math.max(.2,Math.min(3,zoom*factor));
+      pan.x=cx-wx0*zoom; pan.y=cy-wy0*zoom;
+      draw();
+    }
+    pinchDist=nd; return;
+  }
+
+  if(dragging){
+    clearTimeout(longPressTimer);
+    dragging.x=sx(px-dragOffset.x+pan.x*(1-1)); // fix
+    dragging.x=sx(px); dragging.x=(px-pan.x)/zoom;
+    dragging.y=(py-pan.y)/zoom;
+    draw(); return;
+  }
+  if(panStart){
+    pan.x=panOrigin.x+(px-panStart.x);
+    pan.y=panOrigin.y+(py-panStart.y);
+    draw(); return;
+  }
+  if(tool==='edge'&&edgeFrom){ previewPos={x:px,y:py}; draw(); }
+});
+
+canvas.addEventListener('pointerup', e=>{
+  delete pointers[e.pointerId];
+  clearTimeout(longPressTimer);
+  if(Object.keys(pointers).length<2) pinchDist=null;
+  dragging=null; panStart=null; panOrigin=null;
+  saveToStorage();
+});
+
+canvas.addEventListener('dblclick', e=>{
+  const n=hitNode(e.offsetX,e.offsetY);
+  if(n){ openNodeEdit(n); return; }
+  const edge=hitEdge(e.offsetX,e.offsetY);
+  if(edge){ openEdgeEdit(edge); }
+});
+
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const factor=e.deltaY>0?.9:1.1;
+  const wx0=sx(e.offsetX),wy0=sy(e.offsetY);
+  zoom=Math.max(.2,Math.min(3,zoom*factor));
+  pan.x=e.offsetX-wx0*zoom; pan.y=e.offsetY-wy0*zoom;
+  draw();
+},{passive:false});
+
+function getPinchDist(){
+  const pts=Object.values(pointers);
+  if(pts.length<2) return null;
+  return Math.hypot(pts[0].offsetX-pts[1].offsetX, pts[0].offsetY-pts[1].offsetY);
+}
+
+// ── TOOLS ─────────────────────────────────────────────────────────────────────
+function setTool(t){
+  tool=t; edgeFrom=null; previewPos=null;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tool-'+t)?.classList.add('active');
+  canvas.style.cursor = t==='node'?'crosshair': t==='edge'?'cell':'default';
+  document.getElementById('hint').style.display = t==='select'?'':'none';
+  if(t==='edge') showToast('点击起始节点');
+  draw();
+}
+
+// ── NODE EDIT ─────────────────────────────────────────────────────────────────
+function openNodeEdit(n){
+  selectedNode=n.id;
+  document.getElementById('panel-node-title').textContent='编辑节点';
+  document.getElementById('ne-en').value=n.en||'';
+  document.getElementById('ne-zh').value=n.zh||'';
+  document.getElementById('ne-body').value=n.body||'';
+  document.getElementById('ne-note').value=n.note||'';
+  renderLayerPicker('ne-layers', n.layer, 'ne-layer-sel');
+  document.getElementById('btn-delete-node').style.display='';
+  openPanel('panel-node');
+  draw();
+}
+
+function openAddNode(wx_,wy_){
+  pendingNodePos={x:wx_,y:wy_};
+  document.getElementById('an-en').value='';
+  document.getElementById('an-zh').value='';
+  document.getElementById('an-body').value='';
+  document.getElementById('an-note').value='';
+  renderLayerPicker('an-layers','ontological','an-layer-sel');
+  openPanel('panel-addnode');
+}
+
+let pendingNodePos=null;
+
+function renderLayerPicker(containerId, selectedLayer, pickerId){
+  const el=document.getElementById(containerId);
+  el.innerHTML='';
+  Object.entries(LAYERS).forEach(([k,l])=>{
+    const chip=document.createElement('div');
+    chip.className='layer-chip'+(k===selectedLayer?' selected':'');
+    chip.style.color=l.color; chip.style.borderColor=l.color;
+    chip.textContent=l.label;
+    chip.dataset.layer=k;
+    chip.dataset.picker=pickerId;
+    chip.onclick=()=>{
+      el.querySelectorAll('.layer-chip').forEach(c=>c.classList.remove('selected'));
+      chip.classList.add('selected');
+    };
+    el.appendChild(chip);
+  });
+}
+
+function getSelectedLayer(containerId){
+  const sel=document.querySelector(`#${containerId} .layer-chip.selected`);
+  return sel?sel.dataset.layer:'ontological';
+}
+
+function commitNodeEdit(){
+  const n=nodes.find(nd=>nd.id===selectedNode);
+  if(!n) return;
+  n.en=document.getElementById('ne-en').value.trim()||n.en;
+  n.zh=document.getElementById('ne-zh').value.trim();
+  n.layer=getSelectedLayer('ne-layers');
+  n.body=document.getElementById('ne-body').value.trim();
+  n.note=document.getElementById('ne-note').value.trim();
+  closePanel('panel-node');
+  saveToStorage(); draw();
+  showToast('已保存');
+}
+
+function commitAddNode(){
+  const en=document.getElementById('an-en').value.trim();
+  if(!en){showToast('请填写名称');return;}
+  const n={
+    id:'n_'+Date.now(),
+    en, zh:document.getElementById('an-zh').value.trim(),
+    layer:getSelectedLayer('an-layers'),
+    body:document.getElementById('an-body').value.trim(),
+    note:document.getElementById('an-note').value.trim(),
+    x:pendingNodePos?.x||0, y:pendingNodePos?.y||0,
+  };
+  nodes.push(n);
+  setTool('select');
+  closePanel('panel-addnode');
+  saveToStorage(); draw();
+  showToast('节点已添加');
+}
+
+function deleteSelectedNode(){
+  if(!selectedNode) return;
+  nodes=nodes.filter(n=>n.id!==selectedNode);
+  edges=edges.filter(e=>e.from!==selectedNode&&e.to!==selectedNode);
+  selectedNode=null;
+  closePanel('panel-node');
+  saveToStorage(); draw();
+  showToast('节点已删除');
+}
+
+// ── EDGE EDIT ─────────────────────────────────────────────────────────────────
+function openEdgeEdit(e){
+  selectedEdge=e.id;
+  document.getElementById('ee-rel').value=e.rel||'';
+  openPanel('panel-edge');
+  draw();
+}
+
+function commitEdgeEdit(){
+  const e=edges.find(ed=>ed.id===selectedEdge);
+  if(!e) return;
+  e.rel=document.getElementById('ee-rel').value.trim();
+  closePanel('panel-edge');
+  saveToStorage(); draw();
+  showToast('已保存');
+}
+
+function deleteSelectedEdge(){
+  edges=edges.filter(e=>e.id!==selectedEdge);
+  selectedEdge=null;
+  closePanel('panel-edge');
+  saveToStorage(); draw();
+}
+
+function addEdge(fromId,toId){
+  if(edges.find(e=>e.from===fromId&&e.to===toId)) return;
+  edges.push({id:'e_'+Date.now(),from:fromId,to:toId,rel:''});
+  saveToStorage();
+  // open edit immediately
+  const e=edges[edges.length-1];
+  selectedEdge=e.id;
+  openEdgeEdit(e);
+}
+
+// ── EDGE TIP ──────────────────────────────────────────────────────────────────
+const edgeTip=document.getElementById('edge-tip');
+function showEdgeTip(e,px,py){
+  if(!e.rel){hideEdgeTip();return;}
+  edgeTip.textContent=e.rel;
+  edgeTip.style.left=(px+12)+'px'; edgeTip.style.top=(py-30)+'px';
+  edgeTip.classList.add('visible');
+}
+function hideEdgeTip(){ edgeTip.classList.remove('visible'); }
+
+// ── LAYOUT ────────────────────────────────────────────────────────────────────
+function autoLayout(){
+  const cols=Math.ceil(Math.sqrt(nodes.length));
+  nodes.forEach((n,i)=>{
+    n.x=100+(i%cols)*180;
+    n.y=100+Math.floor(i/cols)*140;
+  });
+  fitView(); saveToStorage(); draw();
+}
+
+function fitView(){
+  if(!nodes.length) return;
+  const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+  const minX=Math.min(...xs)-NW, maxX=Math.max(...xs)+NW;
+  const minY=Math.min(...ys)-NH, maxY=Math.max(...ys)+NH;
+  const pw=maxX-minX, ph=maxY-minY;
+  zoom=Math.min(.95,Math.min(W/pw, H/ph))*.85;
+  pan.x=(W-pw*zoom)/2-minX*zoom;
+  pan.y=(H-ph*zoom)/2-minY*zoom;
+  draw();
+}
+
+// ── PANELS ────────────────────────────────────────────────────────────────────
+function openPanel(id){
+  closeAllPanels();
+  document.getElementById(id).classList.add('open');
+  document.getElementById('overlay').classList.add('visible');
+}
+function closePanel(id){
+  document.getElementById(id).classList.remove('open');
+  document.getElementById('overlay').classList.remove('visible');
+}
+function closeAllPanels(){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
+  document.getElementById('overlay').classList.remove('visible');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ── STORAGE ───────────────────────────────────────────────────────────────────
+async function saveToStorage(){
+  try{
+    await window.storage.set('fw_nodes',JSON.stringify(nodes));
+    await window.storage.set('fw_edges',JSON.stringify(edges));
+  }catch(e){}
+}
+
+async function loadFromStorage(){
+  try{
+    const rn=await window.storage.get('fw_nodes');
+    const re=await window.storage.get('fw_edges');
+    if(rn) nodes=JSON.parse(rn.value);
+    if(re) edges=JSON.parse(re.value);
+    if(!nodes.length) initDefault();
+  }catch(e){ initDefault(); }
+  fitView(); draw();
+}
+
+function initDefault(){
+  nodes=DEFAULT_NODES.map(n=>({...n, x:0, y:0}));
+  edges=DEFAULT_EDGES.map(e=>({...e}));
+  // set positions
+  nodes.forEach(n=>{ n.x=n.fx*(W/zoom-NW)+NW/2; n.y=n.fy*(H/zoom-NH)+NH/2; });
+}
+
+function resetToDefault(){
+  if(!confirm('重置会清除所有自定义内容，确定吗？')) return;
+  initDefault();
+  fitView(); saveToStorage(); draw();
+  showToast('已重置');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+setTool('select');
+window.addEventListener('resize',()=>{ resize(); fitView(); });
+resize();
+loadFromStorage();
+</script>
+</body>
+</html>

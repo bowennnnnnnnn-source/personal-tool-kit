@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>启动</title>
+<style>
+:root {
+  --bg: #0c0c10;
+  --surface: #13131c;
+  --surface2: #1a1a26;
+  --border: #1e1e2e;
+  --border2: #2a2a3e;
+  --text: #e2e2f0;
+  --muted: #5a5a7a;
+  --dim: #232335;
+  --accent: #7c6fff;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --blue: #60a5fa;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:15px}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  min-height:100dvh;display:flex;flex-direction:column;
+}
+
+nav{
+  display:flex;border-bottom:1px solid var(--border);
+  flex-shrink:0;position:sticky;top:0;background:var(--bg);z-index:20;
+}
+.tab{
+  flex:1;padding:12px 6px 11px;font-size:10px;font-family:'Courier New',monospace;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  text-align:center;cursor:pointer;border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s;
+}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+
+.view{display:none;flex:1;flex-direction:column}
+.view.active{display:flex}
+
+/* ── START VIEW ── */
+#v-start{padding:20px 16px;gap:16px}
+
+.day-greeting{
+  font-size:11px;font-family:'Courier New',monospace;color:var(--muted);
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.starts-today{
+  font-size:28px;font-weight:700;font-family:'Courier New',monospace;
+  color:var(--accent);line-height:1;
+}
+.starts-label{font-size:11px;color:var(--muted);margin-top:3px}
+
+.input-wrap{position:relative}
+textarea#task-input{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:13px 14px;font-size:14px;color:var(--text);
+  font-family:inherit;resize:none;outline:none;line-height:1.6;
+  min-height:72px;max-height:140px;transition:border-color .15s;
+}
+textarea#task-input::placeholder{color:var(--muted)}
+textarea#task-input:focus{border-color:var(--accent)}
+
+#btn-break{
+  width:100%;background:var(--accent);color:#fff;border:none;
+  border-radius:11px;padding:14px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s;
+  opacity:.35;
+}
+#btn-break.ready{opacity:1}
+#btn-break.ready:active{transform:scale(.97)}
+
+/* FIRST ACTION CARD */
+#first-action{display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+#first-action.visible{display:block}
+.fa-label{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px;
+}
+.fa-action{
+  font-size:15px;color:var(--text);line-height:1.65;margin-bottom:14px;
+  padding:12px 14px;background:var(--surface2);border-radius:8px;
+  border-left:3px solid var(--accent);
+}
+.fa-why{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:14px}
+
+#btn-go{
+  width:100%;background:var(--green);color:#0c0c10;border:none;
+  border-radius:10px;padding:13px;font-size:14px;font-weight:800;
+  cursor:pointer;font-family:inherit;transition:transform .1s;letter-spacing:.02em;
+}
+#btn-go:active{transform:scale(.97)}
+
+/* TIMER */
+#timer-screen{
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px;gap:20px;flex:1;
+}
+#timer-screen.visible{display:flex}
+.timer-task{
+  font-size:13px;color:var(--muted);text-align:center;line-height:1.6;
+  max-width:280px;font-style:italic;
+}
+.timer-display{
+  font-size:72px;font-weight:700;font-family:'Courier New',monospace;
+  color:var(--text);line-height:1;letter-spacing:-.02em;
+}
+.timer-display.urgent{color:var(--yellow)}
+.timer-label{font-size:11px;color:var(--muted);font-family:'Courier New',monospace;letter-spacing:.1em;text-transform:uppercase}
+.timer-actions{display:flex;gap:10px;width:100%}
+.timer-stop{
+  flex:1;background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  border-radius:10px;padding:12px;font-size:13px;cursor:pointer;font-family:inherit;
+  transition:border-color .15s,color .15s;
+}
+.timer-stop:hover{border-color:var(--red);color:var(--red)}
+.timer-extend{
+  flex:2;background:var(--accent);color:#fff;border:none;
+  border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:opacity .15s;
+}
+.timer-extend:hover{opacity:.85}
+
+/* DONE SCREEN */
+#done-screen{
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px;gap:16px;flex:1;text-align:center;
+}
+#done-screen.visible{display:flex}
+.done-emoji{font-size:48px}
+.done-title{font-size:20px;font-weight:700}
+.done-sub{font-size:13px;color:var(--muted);line-height:1.7;max-width:260px}
+.done-actions{display:flex;flex-direction:column;gap:8px;width:100%}
+.btn-keep-going{
+  background:var(--green);color:#0c0c10;border:none;border-radius:10px;
+  padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;
+}
+.btn-done-done{
+  background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  border-radius:10px;padding:12px;font-size:13px;cursor:pointer;font-family:inherit;
+  transition:border-color .15s,color .15s;
+}
+.btn-done-done:hover{border-color:var(--accent);color:var(--accent)}
+
+/* LOADING */
+.spin{
+  display:inline-block;width:10px;height:10px;
+  border:1.5px solid var(--dim);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── LOG VIEW ── */
+#v-log{overflow-y:auto}
+.log-header{
+  padding:16px 16px 8px;display:flex;align-items:baseline;gap:10px;
+  position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.log-title{font-size:11px;font-family:'Courier New',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.log-streak{font-size:11px;color:var(--yellow);font-family:'Courier New',monospace;margin-left:auto}
+
+.log-body{padding:12px 16px 32px;display:flex;flex-direction:column;gap:8px}
+
+.log-day{margin-bottom:4px}
+.log-day-label{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:12px;
+}
+.log-entry{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:10px 13px;display:flex;align-items:center;gap:10px;
+}
+.log-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.log-task{flex:1;font-size:13px;color:var(--text);line-height:1.5}
+.log-duration{
+  font-size:10px;font-family:'Courier New',monospace;color:var(--muted);flex-shrink:0;
+}
+.log-time{font-size:10px;color:var(--dim);flex-shrink:0;font-family:'Courier New',monospace}
+
+.empty-log{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;color:var(--muted);font-size:12px;text-align:center;padding:40px;line-height:1.7;
+}
+.empty-icon{font-size:28px;opacity:.3}
+
+/* ── WEEK VIEW ── */
+#v-week{padding:16px;overflow-y:auto;gap:16px;display:none;flex-direction:column}
+#v-week.active{display:flex}
+.week-title{font-size:11px;font-family:'Courier New',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.week-col{display:flex;flex-direction:column;align-items:center;gap:4px}
+.week-day-label{font-size:9px;font-family:'Courier New',monospace;color:var(--muted);text-transform:uppercase}
+.week-bar-wrap{height:80px;display:flex;align-items:flex-end}
+.week-bar{
+  width:100%;border-radius:3px 3px 0 0;
+  background:var(--accent);opacity:.3;min-height:3px;
+  transition:height .4s cubic-bezier(.4,0,.2,1),opacity .4s;
+}
+.week-bar.today{opacity:1}
+.week-count{font-size:9px;font-family:'Courier New',monospace;color:var(--muted)}
+
+.insight-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;
+}
+.insight-label{font-size:9px;font-family:'Courier New',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.insight-text{font-size:13px;color:var(--muted);line-height:1.7}
+.insight-text strong{color:var(--text)}
+
+.stat-row{display:flex;gap:10px}
+.stat-box{
+  flex:1;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;
+}
+.stat-num{font-size:24px;font-weight:700;font-family:'Courier New',monospace;color:var(--accent)}
+.stat-label{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="tab active" data-view="start" onclick="switchTab('start')">启动</div>
+  <div class="tab" data-view="log" onclick="switchTab('log')">记录</div>
+  <div class="tab" data-view="week" onclick="switchTab('week')">本周</div>
+</nav>
+
+<!-- START -->
+<div class="view active" id="v-start">
+  <div style="display:flex;align-items:baseline;gap:12px">
+    <div>
+      <div class="starts-today" id="starts-today">0</div>
+      <div class="starts-label">今天启动了</div>
+    </div>
+    <div style="margin-left:auto;text-align:right">
+      <div class="day-greeting" id="day-greeting"></div>
+    </div>
+  </div>
+
+  <div class="input-wrap">
+    <textarea id="task-input" placeholder="你想做什么？随便写，不用整理……" rows="3"
+      oninput="onTaskInput()" onkeydown="handleTaskKey(event)"></textarea>
+  </div>
+
+  <button id="btn-break" onclick="breakdownTask()" disabled>拆解 → 找到第一步</button>
+
+  <div id="first-action">
+    <div class="fa-label">现在只做这一件事</div>
+    <div class="fa-action" id="fa-action-text"></div>
+    <div class="fa-why" id="fa-why-text"></div>
+    <button id="btn-go" onclick="startTimer()">开始 5 分钟 →</button>
+  </div>
+
+  <div id="timer-screen">
+    <div class="timer-task" id="timer-task-label"></div>
+    <div>
+      <div class="timer-display" id="timer-display">5:00</div>
+      <div class="timer-label" style="text-align:center;margin-top:6px">还剩</div>
+    </div>
+    <div class="timer-actions">
+      <button class="timer-stop" onclick="stopTimer()">放弃</button>
+      <button class="timer-extend" onclick="extendTimer()">再加 5 分钟</button>
+    </div>
+  </div>
+
+  <div id="done-screen">
+    <div class="done-emoji">🛡</div>
+    <div class="done-title">启动成功</div>
+    <div class="done-sub" id="done-sub"></div>
+    <div class="done-actions">
+      <button class="btn-keep-going" onclick="keepGoing()">继续做</button>
+      <button class="btn-done-done" onclick="finishSession()">先这样</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG -->
+<div class="view" id="v-log">
+  <div class="log-header">
+    <span class="log-title">启动记录</span>
+    <span class="log-streak" id="log-streak"></span>
+  </div>
+  <div class="log-body" id="log-body"></div>
+</div>
+
+<!-- WEEK -->
+<div class="view" id="v-week">
+  <div class="week-title">本周启动分布</div>
+  <div class="week-grid" id="week-grid"></div>
+  <div class="stat-row">
+    <div class="stat-box">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-label">本周总启动次数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-avg">0</div>
+      <div class="stat-label">平均每天启动</div>
+    </div>
+  </div>
+  <div class="insight-card">
+    <div class="insight-label">规律</div>
+    <div class="insight-text" id="week-insight">积累几天数据后这里会出现你的启动规律。</div>
+  </div>
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let log = []; // { task, firstAction, startedAt, duration, ts }
+let timerInterval = null;
+let timerSeconds = 300;
+let sessionStart = null;
+let currentTask = '';
+let currentFirstAction = '';
+let sessionDuration = 0;
+
+// ── STORAGE ───────────────────────────────────────────────────────────────────
+async function save() {
+  try { await window.storage.set('start_log', JSON.stringify(log)); } catch(e){}
+}
+async function load() {
+  try {
+    const r = await window.storage.get('start_log');
+    if(r) log = JSON.parse(r.value);
+  } catch(e){ log=[]; }
+  updateStartCount();
+  renderLog();
+  renderWeek();
+}
+
+// ── TAB ───────────────────────────────────────────────────────────────────────
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===id));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+id));
+  if(id==='week') renderWeek();
+  if(id==='log') renderLog();
+}
+
+// ── INPUT ─────────────────────────────────────────────────────────────────────
+function onTaskInput(){
+  const v=document.getElementById('task-input').value.trim();
+  const btn=document.getElementById('btn-break');
+  btn.disabled=v.length<3;
+  btn.classList.toggle('ready',v.length>=3);
+}
+function handleTaskKey(e){
+  if(e.key==='Enter'&&e.metaKey) breakdownTask();
+}
+
+// ── BREAKDOWN ─────────────────────────────────────────────────────────────────
+async function breakdownTask(){
+  const task=document.getElementById('task-input').value.trim();
+  if(!task) return;
+  currentTask=task;
+
+  const btn=document.getElementById('btn-break');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span>';
+
+  document.getElementById('first-action').classList.remove('visible');
+  document.getElementById('first-action').style.display='none';
+
+  const system=`你是一个专门对付"知道要做但就是不开始"的启动教练。
+
+用户输入一个任务，你的唯一目标是找到启动阻力最小的第一个动作——不是计划，不是todo list，就是"接下来30秒可以做的一个具体动作"。
+
+原则：
+- 这个动作必须极其小、具体、不需要任何准备
+- 不要说"打开电脑"这种废话，说"打开XX文件的第一段"
+- 如果任务很模糊，把它锚定到一个最小的物理动作
+- why要简短真实，不是励志，是帮用户理解为什么这一步可以消除阻力
+
+严格返回JSON：
+{"action":"第一个30秒能做的具体动作","why":"为什么这一步能启动（1句，不超过20字）"}`;
+
+  try{
+    const raw=await callClaude(system,[{role:'user',content:`任务：${task}`}]);
+    const clean=raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const parsed=JSON.parse(clean);
+    currentFirstAction=parsed.action;
+    document.getElementById('fa-action-text').textContent=parsed.action;
+    document.getElementById('fa-why-text').textContent=parsed.why;
+    document.getElementById('first-action').style.display='block';
+    document.getElementById('first-action').classList.add('visible');
+  }catch(e){
+    // fallback
+    currentFirstAction=`打开${task}相关的文件或页面`;
+    document.getElementById('fa-action-text').textContent=currentFirstAction;
+    document.getElementById('fa-why-text').textContent='从最小的物理动作开始，绕过大脑的抵抗。';
+    document.getElementById('first-action').style.display='block';
+    document.getElementById('first-action').classList.add('visible');
+  }
+
+  btn.disabled=false;
+  btn.innerHTML='拆解 → 找到第一步';
+  btn.classList.add('ready');
+}
+
+// ── TIMER ─────────────────────────────────────────────────────────────────────
+function startTimer(){
+  sessionStart=Date.now();
+  timerSeconds=300;
+  document.getElementById('first-action').style.display='none';
+  document.getElementById('first-action').classList.remove('visible');
+  document.getElementById('timer-screen').classList.add('visible');
+  document.getElementById('timer-task-label').textContent=currentFirstAction;
+  runTimer();
+}
+
+function runTimer(){
+  clearInterval(timerInterval);
+  updateTimerDisplay();
+  timerInterval=setInterval(()=>{
+    timerSeconds--;
+    updateTimerDisplay();
+    if(timerSeconds<=0){
+      clearInterval(timerInterval);
+      timerDone();
+    }
+  },1000);
+}
+
+function updateTimerDisplay(){
+  const m=Math.floor(timerSeconds/60);
+  const s=timerSeconds%60;
+  const el=document.getElementById('timer-display');
+  el.textContent=`${m}:${String(s).padStart(2,'0')}`;
+  el.classList.toggle('urgent',timerSeconds<=60);
+}
+
+function extendTimer(){
+  timerSeconds+=300;
+  updateTimerDisplay();
+}
+
+function stopTimer(){
+  clearInterval(timerInterval);
+  const dur=Math.round((Date.now()-sessionStart)/1000);
+  saveEntry(dur);
+  resetToInput();
+}
+
+function timerDone(){
+  clearInterval(timerInterval);
+  sessionDuration=Math.round((Date.now()-sessionStart)/1000);
+  document.getElementById('timer-screen').classList.remove('visible');
+  const mins=Math.round(sessionDuration/60);
+  document.getElementById('done-sub').textContent=`你启动了，而且坚持了 ${mins} 分钟。这就是今天的一次胜利。`;
+  document.getElementById('done-screen').classList.add('visible');
+}
+
+function keepGoing(){
+  document.getElementById('done-screen').classList.remove('visible');
+  timerSeconds=300;
+  document.getElementById('timer-screen').classList.add('visible');
+  runTimer();
+}
+
+function finishSession(){
+  saveEntry(sessionDuration||Math.round((Date.now()-sessionStart)/1000));
+  document.getElementById('done-screen').classList.remove('visible');
+  resetToInput();
+}
+
+function saveEntry(dur){
+  log.unshift({
+    task:currentTask,
+    firstAction:currentFirstAction,
+    duration:dur,
+    ts:new Date().toISOString()
+  });
+  save();
+  updateStartCount();
+}
+
+function resetToInput(){
+  document.getElementById('task-input').value='';
+  document.getElementById('btn-break').disabled=true;
+  document.getElementById('btn-break').classList.remove('ready');
+  document.getElementById('first-action').style.display='none';
+  document.getElementById('first-action').classList.remove('visible');
+  document.getElementById('timer-screen').classList.remove('visible');
+  document.getElementById('done-screen').classList.remove('visible');
+  currentTask=''; currentFirstAction=''; sessionDuration=0;
+  updateStartCount();
+}
+
+// ── COUNT ─────────────────────────────────────────────────────────────────────
+function updateStartCount(){
+  const today=new Date().toDateString();
+  const count=log.filter(e=>new Date(e.ts).toDateString()===today).length;
+  document.getElementById('starts-today').textContent=count;
+  const h=new Date().getHours();
+  const greet=h<12?'早上好':h<18?'下午好':'晚上好';
+  document.getElementById('day-greeting').textContent=greet;
+}
+
+// ── LOG ───────────────────────────────────────────────────────────────────────
+function renderLog(){
+  const body=document.getElementById('log-body');
+  if(!log.length){
+    body.innerHTML=`<div class="empty-log"><div class="empty-icon">◎</div><div>还没有启动记录<br>去启动第一个任务</div></div>`;
+    document.getElementById('log-streak').textContent='';
+    return;
+  }
+
+  // group by day
+  const groups={};
+  log.forEach(e=>{
+    const d=new Date(e.ts).toDateString();
+    if(!groups[d]) groups[d]=[];
+    groups[d].push(e);
+  });
+
+  // streak
+  let streak=0;
+  const today=new Date(); today.setHours(0,0,0,0);
+  for(let i=0;i<30;i++){
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    if(groups[d.toDateString()]) streak++;
+    else if(i>0) break;
+  }
+  document.getElementById('log-streak').textContent=streak>1?`${streak}天连续启动`:'';
+
+  body.innerHTML=Object.entries(groups).map(([day,entries])=>{
+    const d=new Date(day);
+    const label=isToday(d)?'今天':isYesterday(d)?'昨天':formatDate(d);
+    return `<div class="log-day">
+      <div class="log-day-label">${label} · ${entries.length}次启动</div>
+      ${entries.map(e=>{
+        const mins=Math.round(e.duration/60)||1;
+        const t=new Date(e.ts);
+        const timeStr=`${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}`;
+        return `<div class="log-entry">
+          <div class="log-dot"></div>
+          <div class="log-task">${escHtml(e.task)}</div>
+          <div class="log-duration">${mins}min</div>
+          <div class="log-time">${timeStr}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── WEEK ──────────────────────────────────────────────────────────────────────
+function renderWeek(){
+  const days=['日','一','二','三','四','五','六'];
+  const today=new Date(); today.setHours(0,0,0,0);
+  const todayDay=today.getDay();
+
+  const weekData=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    const count=log.filter(e=>new Date(e.ts).toDateString()===d.toDateString()).length;
+    weekData.push({d,count,label:days[d.getDay()],isToday:i===0});
+  }
+
+  const maxCount=Math.max(...weekData.map(w=>w.count),1);
+  const grid=document.getElementById('week-grid');
+  grid.innerHTML=weekData.map(w=>`
+    <div class="week-col">
+      <div class="week-day-label">${w.label}</div>
+      <div class="week-bar-wrap">
+        <div class="week-bar${w.isToday?' today':''}" style="height:${Math.max(4,w.count/maxCount*80)}px"></div>
+      </div>
+      <div class="week-count">${w.count||''}</div>
+    </div>
+  `).join('');
+
+  const total=weekData.reduce((s,w)=>s+w.count,0);
+  const daysWithData=weekData.filter(w=>w.count>0).length||1;
+  document.getElementById('stat-total').textContent=total;
+  document.getElementById('stat-avg').textContent=(total/7).toFixed(1);
+
+  // insight
+  if(total===0){
+    document.getElementById('week-insight').innerHTML='还没有数据，先去启动一个任务。';
+    return;
+  }
+  const bestDay=weekData.reduce((a,b)=>a.count>=b.count?a:b);
+  const dayNames=['周日','周一','周二','周三','周四','周五','周六'];
+  const bestDayName=bestDay.isToday?'今天':dayNames[bestDay.d.getDay()];
+  const morningCount=log.filter(e=>{const h=new Date(e.ts).getHours();return h>=6&&h<12}).length;
+  const afCount=log.filter(e=>{const h=new Date(e.ts).getHours();return h>=12&&h<18}).length;
+  const nightCount=log.filter(e=>{const h=new Date(e.ts).getHours();return h>=18||h<6}).length;
+  const bestTime=morningCount>=afCount&&morningCount>=nightCount?'上午':afCount>=nightCount?'下午':'晚上';
+  document.getElementById('week-insight').innerHTML=
+    `<strong>${bestDayName}</strong>启动次数最多（${bestDay.count}次）。你最容易在<strong>${bestTime}</strong>启动。`;
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function isToday(d){ return d.toDateString()===new Date().toDateString(); }
+function isYesterday(d){ const y=new Date(); y.setDate(y.getDate()-1); return d.toDateString()===y.toDateString(); }
+function formatDate(d){ return `${d.getMonth()+1}月${d.getDate()}日`; }
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function callClaude(system,messages){
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,system,messages})
+  });
+  if(!res.ok) throw new Error('API '+res.status);
+  const data=await res.json();
+  return data.content.map(b=>b.text||'').join('');
+}
+
+load();
+</script>
+</body>
+</html>

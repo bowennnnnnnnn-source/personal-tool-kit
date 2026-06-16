@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>张博闻 · 工具集</title>
+<style>
+:root {
+  --bg: #0b0b0f;
+  --surface: #13131c;
+  --surface2: #1a1a26;
+  --border: #1e1e2e;
+  --text: #e2e2f0;
+  --muted: #5a5a7a;
+  --dim: #232335;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:15px}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  min-height:100dvh;display:flex;flex-direction:column;
+}
+
+header{
+  padding:24px 20px 16px;
+}
+.site-label{
+  font-family:'Courier New',monospace;font-size:10px;
+  color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px;
+}
+.site-title{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.site-sub{font-size:12px;color:var(--muted);margin-top:4px}
+
+main{flex:1;padding:8px 16px 40px;display:flex;flex-direction:column;gap:8px}
+
+.section-label{
+  font-size:9px;font-family:'Courier New',monospace;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);margin:12px 0 6px;
+}
+
+.tool-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;
+  text-decoration:none;color:inherit;
+  transition:border-color .15s,background .15s;
+  cursor:pointer;
+}
+.tool-card:hover,.tool-card:active{
+  border-color:var(--card-color);background:var(--surface2);
+}
+.tool-icon{
+  width:44px;height:44px;border-radius:11px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  background:color-mix(in srgb, var(--card-color) 12%, transparent);
+}
+.tool-info{flex:1;min-width:0}
+.tool-name{font-size:14px;font-weight:600;margin-bottom:3px}
+.tool-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.tool-arrow{font-size:14px;color:var(--muted);flex-shrink:0;transition:transform .15s}
+.tool-card:hover .tool-arrow{transform:translateX(3px)}
+
+footer{
+  padding:20px;text-align:center;
+  font-size:10px;font-family:'Courier New',monospace;
+  color:var(--dim);letter-spacing:.06em;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="site-label">张博闻 · Bowen Zhang</div>
+  <div class="site-title">工具集</div>
+  <div class="site-sub">个人使用 · 调用 Claude API</div>
+</header>
+
+<main>
+
+  <div class="section-label">思考</div>
+
+  <a class="tool-card" href="framework-edit.html" style="--card-color:#4a9eff">
+    <div class="tool-icon">⬡</div>
+    <div class="tool-info">
+      <div class="tool-name">框架图</div>
+      <div class="tool-desc">可编辑的哲学框架交互图 · 加节点、改连线、写注释</div>
+    </div>
+    <div class="tool-arrow">›</div>
+  </a>
+
+  <a class="tool-card" href="fragment-tool.html" style="--card-color:#a78bfa">
+    <div class="tool-icon">◈</div>
+    <div class="tool-info">
+      <div class="tool-name">碎片记录</div>
+      <div class="tool-desc">捕捉思维碎片 · AI提炼命题 · 主题聚类</div>
+    </div>
+    <div class="tool-arrow">›</div>
+  </a>
+
+  <a class="tool-card" href="stress-test.html" style="--card-color:#f87171">
+    <div class="tool-icon">⚔</div>
+    <div class="tool-info">
+      <div class="tool-name">压测机</div>
+      <div class="tool-desc">输入命题 · AI从三个角度攻击 · 你来防守</div>
+    </div>
+    <div class="tool-arrow">›</div>
+  </a>
+
+  <div class="section-label">行动</div>
+
+  <a class="tool-card" href="start-tool.html" style="--card-color:#4ade80">
+    <div class="tool-icon">◎</div>
+    <div class="tool-info">
+      <div class="tool-name">启动工具</div>
+      <div class="tool-desc">找到第一步 · 5分钟计时器 · 记录启动次数</div>
+    </div>
+    <div class="tool-arrow">›</div>
+  </a>
+
+  <a class="tool-card" href="planner.html" style="--card-color:#fbbf24">
+    <div class="tool-icon">⊡</div>
+    <div class="tool-info">
+      <div class="tool-name">拆解</div>
+      <div class="tool-desc">输入任务 · AI拆步骤 · 勾选进度</div>
+    </div>
+    <div class="tool-arrow">›</div>
+  </a>
+
+  <div class="section-label">求职</div>
+
+  <a class="tool-card" href="career-tool.html" style="--card-color:#60a5fa">
+    <div class="tool-icon">◻</div>
+    <div class="tool-info">
+      <div class="tool-name">求职辅助</div>
+      <div class="tool-desc">Cover letter · 弱点转化 · JD匹配分析</div>
+    </div>
+    <div class="tool-arrow">›</div>
+  </a>
+
+  <div class="section-label">英语</div>
+
+  <a class="tool-card" href="english-register.html" style="--card-color:#f472b6">
+    <div class="tool-icon">☕</div>
+    <div class="tool-info">
+      <div class="tool-name">Register Lab</div>
+      <div class="tool-desc">NZ casual English · 实时标注 · 四个场景</div>
+    </div>
+    <div class="tool-arrow">›</div>
+  </a>
+
+</main>
+
+<footer>bowen.tools · powered by Claude</footer>
+
+</body>
+</html>
